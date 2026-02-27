@@ -1,180 +1,243 @@
 import QtQuick
 import Quickshell
+import Quickshell.Io
 import qs.Common
 import qs.Services
 import qs.Widgets
 import qs.Modules.Plugins
+import QtQuick.Layouts
+import QtCore
 
 PluginComponent {
     id: root
 
-    // --- State Management ---
-    property string captureMode: "interactive" // interactive, window, screen
-    property bool showPointer: true
-    property bool saveToDisk: true
+    // -- Settings ----------------------------------------------------------------------
+    property string mode: pluginData.mode || "interactive"
+    property bool showPointer: pluginData.showPointer !== undefined ? pluginData.showPointer : true
+    property bool saveToDisk: pluginData.saveToDisk !== undefined ? pluginData.saveToDisk : true
+    property string customPath: pluginData.customPath || ""
 
-    // UI properties for the widget interface
-    ccWidgetIcon: "photo_camera"
-    ccWidgetPrimaryText: I18n.tr("Screenshot", "Screenshot tool name")
-    ccWidgetSecondaryText: {
-        switch(captureMode) {
-            case "interactive": return I18n.tr("Interactive Mode");
-            case "window": return I18n.tr("Focused Window");
-            case "screen": return I18n.tr("Focused Screen");
-            default: return "";
+    // -- Internal ----------------------------------------------------------------------
+    property bool isTakingScreenshot: false
+    property string defaultPath: ""
+
+    Process {
+        id: defaultPathDetector
+        command: ["bash", "-c", "dir=$(xdg-user-dir PICTURES 2>/dev/null); if [ -n \"$dir\" ]; then echo \"${dir/#$HOME/~}\"; else echo \"~/Pictures\"; fi"]
+        running: true
+        stdout: SplitParser {
+            onRead: function(data) {
+                if (data.trim() !== "") {
+                    root.defaultPath = data.trim();
+                }
+            }
         }
     }
-    
-    // Logic to execute the dms command
-    function triggerCapture() {
-        let args = ["dms", "screenshot"];
-        
-        // Add mode
-        if (captureMode === "interactive") args.push("--interactive");
-        else if (captureMode === "window") args.push("--window");
-        else if (captureMode === "screen") args.push("--screen");
-        
-        // Add options
-        if (showPointer) args.push("--pointer");
-        if (saveToDisk) args.push("--save");
-        
-        Quickshell.execDetached(args);
-        
-        // Close the UI if it's in a popout
-        if (typeof closePopout === "function") closePopout();
+
+    // Control Center Widget Properties
+    ccWidgetIcon: "screenshot_region"
+    ccWidgetPrimaryText: "Screenshot"
+    ccWidgetSecondaryText: _getModeText()
+    ccWidgetIsActive: false // Stateless action, so always inactive/ready
+
+    function _getModeText() {
+        if (root.mode === "interactive") return "Interactive Mode"
+        if (root.mode === "full") return "Focused Screen"
+        if (root.mode === "all") return "All Screens"
+        return "Screenshot"
     }
 
-    // --- Control Center Detail (screenshot-control-center.png) ---
+    onCcWidgetToggled: {
+        takeScreenshot();
+        if (PopoutService) {
+            PopoutService.closeControlCenter();
+        }
+    }
+
+    function takeScreenshot() {
+        if (root.isTakingScreenshot) return;
+        root.isTakingScreenshot = true;
+
+        if (typeof PluginService !== "undefined" && PluginService) {
+            root.mode = PluginService.loadPluginData("dmsScreenshot", "mode", "interactive") || "interactive";
+            root.showPointer = PluginService.loadPluginData("dmsScreenshot", "showPointer", true);
+            root.saveToDisk = PluginService.loadPluginData("dmsScreenshot", "saveToDisk", true);
+            root.customPath = PluginService.loadPluginData("dmsScreenshot", "customPath", "") || "";
+        }
+
+        let execCmd;
+
+        if (root.mode === "interactive") {
+            execCmd = ["dms", "screenshot"];
+            if (root.showPointer) execCmd.push("--cursor", "on");
+            if (!root.saveToDisk) execCmd.push("--no-file");
+            else if (root.customPath) {
+                if (!root.customPath.match(/\.(png|jpe?g)$/i)) {
+                    execCmd.push("--dir", root.customPath);
+                } else {
+                    execCmd.push("--filename", root.customPath);
+                }
+            }
+        } else {
+            let dmsStr = "dms screenshot " + root.mode;
+            if (root.showPointer) dmsStr += " --cursor on";
+            if (!root.saveToDisk) dmsStr += " --no-file";
+            else if (root.customPath) {
+                if (!root.customPath.match(/\.(png|jpe?g)$/i)) {
+                    dmsStr += " --dir \"" + root.customPath + "\"";
+                } else {
+                    dmsStr += " --filename \"" + root.customPath + "\"";
+                }
+            }
+            execCmd = ["sh", "-c", "sleep 0.3; " + dmsStr];
+        }
+
+        Quickshell.execDetached(execCmd);
+        root.isTakingScreenshot = false;
+    }
+
+    // -- CC Detail Settings -------------------------------------------------------------
     ccDetailContent: Component {
-        Column {
-            spacing: Theme.spacingM
-            width: parent.width
-
+        Rectangle {
+            implicitHeight: 450
+            radius: Theme.cornerRadius
+            color: Theme.withAlpha(Theme.surfaceContainerHigh, Theme.popupTransparency)
+            
             StyledText {
-                text: I18n.tr("Screenshot Settings")
-                font.pixelSize: Theme.fontSizeL
-                color: Theme.surfaceVariantText
+                id: settingsHeader
+                font.pixelSize: Theme.fontSizeLarge
+                color: Theme.surfaceText
+                font.weight: Font.Medium
+                anchors.top: parent.top
+                anchors.left: parent.left
+                anchors.margins: Theme.spacingM
+                text: "Screenshot"
             }
 
-            // Capture Button
             DankButton {
-                width: parent.width
-                text: I18n.tr("Capture")
-                iconName: "photo_camera"
-                highlighted: true
-                onClicked: root.triggerCapture()
+                id: captureBtn
+                anchors.right: parent.right
+                anchors.verticalCenter: settingsHeader.verticalCenter
+                anchors.rightMargin: Theme.spacingM
+                height: 32
+                width: 110
+                text: "Capture"
+                iconName: "screenshot_region"
+                onClicked: {
+                    root.takeScreenshot();
+                    if (PopoutService) {
+                        PopoutService.closeControlCenter();
+                    }
+                }
             }
 
-            // Mode Selection Group
-            Column {
-                width: parent.width
-                spacing: 2
-                
-                StyledText { 
-                    text: I18n.tr("Capture Mode"); 
-                    font.pixelSize: Theme.fontSizeS; 
-                    color: Theme.primary 
-                    bottomPadding: 4
-                }
+            DankFlickable {
+                anchors.top: settingsHeader.bottom
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.bottom: parent.bottom
+                anchors.margins: Theme.spacingM
+                contentHeight: settingsColumnCC.height
+                clip: true
 
-                ModeEntry {
-                    text: I18n.tr("Interactive (UI)")
-                    icon: "touch_app"
-                    active: root.captureMode === "interactive"
-                    onClicked: root.captureMode = "interactive"
-                }
-                ModeEntry {
-                    text: I18n.tr("Focused Window")
-                    icon: "grid_view"
-                    active: root.captureMode === "window"
-                    onClicked: root.captureMode = "window"
-                }
-                ModeEntry {
-                    text: I18n.tr("Focused Screen")
-                    icon: "monitor"
-                    active: root.captureMode === "screen"
-                    onClicked: root.captureMode = "screen"
+                ScreenshotSettingsForm {
+                    id: settingsColumnCC
+                    width: parent.width
+                    
+                    pluginService: PluginService
+                    pluginId: "dmsScreenshot"
+                    defaultPath: root.defaultPath
+                    onSaveSetting: function(key, value) {
+                        if (key === "mode") root.mode = value;
+                        if (key === "showPointer") root.showPointer = value;
+                        if (key === "saveToDisk") root.saveToDisk = value;
+                        if (key === "customPath") root.customPath = value;
+
+                        try {
+                            if (typeof PluginService !== "undefined" && PluginService) {
+                                 PluginService.savePluginData("dmsScreenshot", key, value);
+                            } else if (root.pluginService) {
+                                 root.pluginService.savePluginData("dmsScreenshot", key, value);
+                            }
+                        } catch (e) {
+                            console.error("ScreenshotWidget: Save error:", e);
+                        }
+                    }
                 }
             }
         }
     }
 
-    // --- Bar Pill UI ---
-    horizontalBarPill: Component {
-        DankIcon {
-            name: "photo_camera"
-            size: Theme.barIconSize(root.barThickness, -4)
-            color: Theme.widgetIconColor
-            anchors.verticalCenter: parent.verticalCenter
-        }
-    }
-
-    // --- Popout Content (screenshot-bar-widget.png) ---
+    // -- Popout Settings ----------------------------------------------------------------
+    popoutWidth: 320
+    popoutHeight: 450
+    
     popoutContent: Component {
         PopoutComponent {
-            id: popout
-            headerText: I18n.tr("Screenshot Settings")
-            detailsText: I18n.tr("Configure capture mode and options")
-            showCloseButton: true
-
+            id: detailPopout
+            
             Column {
                 width: parent.width
-                spacing: Theme.spacingL
+                spacing: Theme.spacingM
 
                 DankButton {
+                    text: "Capture"
                     width: parent.width
-                    text: I18n.tr("Capture")
-                    iconName: "photo_camera"
-                    highlighted: true
-                    onClicked: root.triggerCapture()
-                }
-
-                // Modes Section
-                Column {
-                    width: parent.width
-                    spacing: Theme.spacingS
-                    
-                    StyledText { text: I18n.tr("Capture Mode"); color: Theme.surfaceVariantText }
-                    
-                    ModeEntry {
-                        text: I18n.tr("Interactive (UI)")
-                        icon: "touch_app"
-                        active: root.captureMode === "interactive"
-                        onClicked: root.captureMode = "interactive"
-                    }
-                    ModeEntry {
-                        text: I18n.tr("Focused Window")
-                        icon: "grid_view"
-                        active: root.captureMode === "window"
-                        onClicked: root.captureMode = "window"
-                    }
-                    ModeEntry {
-                        text: I18n.tr("Focused Screen")
-                        icon: "monitor"
-                        active: root.captureMode === "screen"
-                        onClicked: root.captureMode = "screen"
+                    height: 36
+                    iconName: "screenshot_region"
+                    onClicked: {
+                        root.closePopout();
+                        root.takeScreenshot();
                     }
                 }
 
-                // Options Section
-                Column {
+                ScreenshotSettingsForm {
                     width: parent.width
-                    spacing: Theme.spacingS
                     
-                    StyledText { text: I18n.tr("Options"); color: Theme.surfaceVariantText }
+                    pluginService: PluginService
+                    pluginId: "dmsScreenshot"
+                    defaultPath: root.defaultPath
+                    onSaveSetting: function(key, value) {
+                        if (key === "mode") root.mode = value;
+                        if (key === "showPointer") root.showPointer = value;
+                        if (key === "saveToDisk") root.saveToDisk = value;
+                        if (key === "customPath") root.customPath = value;
 
-                    DankCheckBox {
-                        text: I18n.tr("Show Pointer")
-                        checked: root.showPointer
-                        onToggled: root.showPointer = !root.showPointer
-                    }
-
-                    DankCheckBox {
-                        text: I18n.tr("Save to Disk")
-                        checked: root.saveToDisk
-                        onToggled: root.saveToDisk = !root.saveToDisk
+                        try {
+                            if (typeof PluginService !== "undefined" && PluginService) {
+                                 PluginService.savePluginData("dmsScreenshot", key, value);
+                            } else if (root.pluginService) {
+                                 root.pluginService.savePluginData("dmsScreenshot", key, value);
+                            }
+                        } catch (e) {
+                            console.error("ScreenshotWidget: Popout save error:", e);
+                        }
                     }
                 }
+            }
+        }
+    }
+
+    horizontalBarPill: Component {
+        Row {
+            spacing: Theme.spacingS
+            DankIcon {
+                name: "screenshot_region"
+                size: Theme.barIconSize(root.barThickness, -4)
+                color: Theme.widgetIconColor
+                anchors.verticalCenter: parent.verticalCenter
+            }
+        }
+    }
+
+    verticalBarPill: Component {
+        Column {
+            spacing: Theme.spacingXS
+            DankIcon {
+                name: "screenshot_region"
+                size: Theme.barIconSize(root.barThickness, -4)
+                color: Theme.widgetIconColor
+                anchors.horizontalCenter: parent.horizontalCenter
             }
         }
     }

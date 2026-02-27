@@ -15,16 +15,15 @@
     "category": "utilities",
     "repo": "https://github.com/JDKamalakar/dmsScreenshot",
     "compositors": [
-        "niri"
+        "any"
     ],
     "distro": [
         "any"
     ],
     "dependencies": [
-        "dms",
-        "niri"
+        "dms"
     ],
-    "screenshot": "",
+    "screenshot": "https://github.com/JDKamalakar/dmsScreenshot/blob/main/assets/bar-widget.png",
     "permissions": [
         "process",
         "settings_read",
