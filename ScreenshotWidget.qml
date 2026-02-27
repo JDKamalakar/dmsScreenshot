@@ -16,6 +16,12 @@ PluginComponent {
     property bool showPointer: pluginData.showPointer !== undefined ? pluginData.showPointer : true
     property bool saveToDisk: pluginData.saveToDisk !== undefined ? pluginData.saveToDisk : true
     property string customPath: pluginData.customPath || ""
+    
+    // New DMS Settings
+    property string format: pluginData.format || "png"
+    property int quality: pluginData.quality !== undefined ? pluginData.quality : 90
+    property bool copyToClipboard: pluginData.copyToClipboard !== undefined ? pluginData.copyToClipboard : true
+    property bool showNotify: pluginData.showNotify !== undefined ? pluginData.showNotify : true
 
     // -- Internal ----------------------------------------------------------------------
     property bool isTakingScreenshot: false
@@ -34,16 +40,16 @@ PluginComponent {
         }
     }
 
-    // Control Center Widget Properties
     ccWidgetIcon: "screenshot_region"
     ccWidgetPrimaryText: "Screenshot"
     ccWidgetSecondaryText: _getModeText()
-    ccWidgetIsActive: false // Stateless action, so always inactive/ready
+    ccWidgetIsActive: false 
 
     function _getModeText() {
         if (root.mode === "interactive") return "Interactive Mode"
         if (root.mode === "full") return "Focused Screen"
         if (root.mode === "all") return "All Screens"
+        if (root.mode === "last") return "Repeat Last"
         return "Screenshot"
     }
 
@@ -63,6 +69,10 @@ PluginComponent {
             root.showPointer = PluginService.loadPluginData("dmsScreenshot", "showPointer", true);
             root.saveToDisk = PluginService.loadPluginData("dmsScreenshot", "saveToDisk", true);
             root.customPath = PluginService.loadPluginData("dmsScreenshot", "customPath", "") || "";
+            root.format = PluginService.loadPluginData("dmsScreenshot", "format", "png") || "png";
+            root.quality = PluginService.loadPluginData("dmsScreenshot", "quality", 90);
+            root.copyToClipboard = PluginService.loadPluginData("dmsScreenshot", "copyToClipboard", true);
+            root.showNotify = PluginService.loadPluginData("dmsScreenshot", "showNotify", true);
         }
 
         let execCmd;
@@ -71,8 +81,13 @@ PluginComponent {
             execCmd = ["dms", "screenshot"];
             if (root.showPointer) execCmd.push("--cursor", "on");
             if (!root.saveToDisk) execCmd.push("--no-file");
-            else if (root.customPath) {
-                if (!root.customPath.match(/\.(png|jpe?g)$/i)) {
+            if (!root.copyToClipboard) execCmd.push("--no-clipboard");
+            if (!root.showNotify) execCmd.push("--no-notify");
+            execCmd.push("-f", root.format);
+            if (root.format === "jpg") execCmd.push("-q", root.quality.toString());
+            
+            if (root.saveToDisk && root.customPath) {
+                if (!root.customPath.match(/\.(png|jpe?g|ppm)$/i)) {
                     execCmd.push("--dir", root.customPath);
                 } else {
                     execCmd.push("--filename", root.customPath);
@@ -82,18 +97,25 @@ PluginComponent {
             let dmsStr = "dms screenshot " + root.mode;
             if (root.showPointer) dmsStr += " --cursor on";
             if (!root.saveToDisk) dmsStr += " --no-file";
-            else if (root.customPath) {
-                if (!root.customPath.match(/\.(png|jpe?g)$/i)) {
+            if (!root.copyToClipboard) dmsStr += " --no-clipboard";
+            if (!root.showNotify) dmsStr += " --no-notify";
+            dmsStr += " -f " + root.format;
+            if (root.format === "jpg") dmsStr += " -q " + root.quality;
+
+            if (root.saveToDisk && root.customPath) {
+                if (!root.customPath.match(/\.(png|jpe?g|ppm)$/i)) {
                     dmsStr += " --dir \"" + root.customPath + "\"";
                 } else {
                     dmsStr += " --filename \"" + root.customPath + "\"";
                 }
             }
-            execCmd = ["sh", "-c", "sleep 0.3; " + dmsStr];
+            execCmd = ["bash", "-c", "sleep 0.3; " + dmsStr];
         }
 
         Quickshell.execDetached(execCmd);
         root.isTakingScreenshot = false;
+        
+        ToastService.showInfo("Screenshot", "Screenshot triggered");
     }
 
     // -- CC Detail Settings -------------------------------------------------------------
@@ -152,6 +174,10 @@ PluginComponent {
                         if (key === "showPointer") root.showPointer = value;
                         if (key === "saveToDisk") root.saveToDisk = value;
                         if (key === "customPath") root.customPath = value;
+                        if (key === "format") root.format = value;
+                        if (key === "quality") root.quality = value;
+                        if (key === "copyToClipboard") root.copyToClipboard = value;
+                        if (key === "showNotify") root.showNotify = value;
 
                         try {
                             if (typeof PluginService !== "undefined" && PluginService) {
@@ -202,6 +228,10 @@ PluginComponent {
                         if (key === "showPointer") root.showPointer = value;
                         if (key === "saveToDisk") root.saveToDisk = value;
                         if (key === "customPath") root.customPath = value;
+                        if (key === "format") root.format = value;
+                        if (key === "quality") root.quality = value;
+                        if (key === "copyToClipboard") root.copyToClipboard = value;
+                        if (key === "showNotify") root.showNotify = value;
 
                         try {
                             if (typeof PluginService !== "undefined" && PluginService) {

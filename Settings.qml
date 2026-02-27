@@ -48,9 +48,43 @@ PluginSettings {
         options: [
             {label: "Interactive (Region)", value: "interactive"},
             {label: "Focused Screen", value: "full"},
-            {label: "All Screens", value: "all"}
+            {label: "All Screens", value: "all"},
+            {label: "Repeat Last Region", value: "last"}
         ]
         defaultValue: "interactive"
+    }
+
+    SelectionSetting {
+        settingKey: "format"
+        label: "Image Format"
+        description: "Format to save the screenshot in"
+        options: [
+            {label: "PNG (Lossless)", value: "png"},
+            {label: "JPEG", value: "jpg"},
+            {label: "PPM (Raw)", value: "ppm"}
+        ]
+        defaultValue: "png"
+    }
+
+    StringSetting {
+        settingKey: "quality"
+        label: "JPEG Quality"
+        description: "Quality from 1-100 (only applies if format is JPEG)"
+        defaultValue: "90"
+    }
+
+    ToggleSetting {
+        settingKey: "copyToClipboard"
+        label: "Copy to Clipboard"
+        description: "Copy the resulting image to your clipboard"
+        defaultValue: true
+    }
+
+    ToggleSetting {
+        settingKey: "showNotify"
+        label: "Show Notification"
+        description: "Show system notification after capture"
+        defaultValue: true
     }
 
     ToggleSetting {
