@@ -97,7 +97,6 @@ PluginComponent {
         } else {
             let dmsStr = "dms screenshot";
             
-            // Format mode argument
             if (root.mode === "window" && root.targetWindow !== "") {
                 dmsStr += " window \"" + root.targetWindow + "\"";
             } else {
@@ -143,7 +142,6 @@ PluginComponent {
                 anchors.top: parent.top
                 anchors.left: parent.left
                 anchors.margins: Theme.spacingM
-                text: "Screenshot"
             }
 
             DankButton {
