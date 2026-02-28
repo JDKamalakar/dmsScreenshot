@@ -11,19 +11,17 @@ import QtCore
 PluginComponent {
     id: root
 
-    // -- Settings ----------------------------------------------------------------------
     property string mode: pluginData.mode || "interactive"
+    property string targetWindow: pluginData.targetWindow || ""
     property bool showPointer: pluginData.showPointer !== undefined ? pluginData.showPointer : true
     property bool saveToDisk: pluginData.saveToDisk !== undefined ? pluginData.saveToDisk : true
     property string customPath: pluginData.customPath || ""
-    
-    // New DMS Settings
     property string format: pluginData.format || "png"
     property int quality: pluginData.quality !== undefined ? pluginData.quality : 90
     property bool copyToClipboard: pluginData.copyToClipboard !== undefined ? pluginData.copyToClipboard : true
     property bool showNotify: pluginData.showNotify !== undefined ? pluginData.showNotify : true
+    property bool showToast: pluginData.showToast !== undefined ? pluginData.showToast : true
 
-    // -- Internal ----------------------------------------------------------------------
     property bool isTakingScreenshot: false
     property string defaultPath: ""
 
@@ -50,12 +48,13 @@ PluginComponent {
         if (root.mode === "full") return "Focused Screen"
         if (root.mode === "all") return "All Screens"
         if (root.mode === "last") return "Repeat Last"
+        if (root.mode === "window") return "Specific Window"
         return "Screenshot"
     }
 
     onCcWidgetToggled: {
         takeScreenshot();
-        if (PopoutService) {
+        if (typeof PopoutService !== "undefined" && PopoutService) {
             PopoutService.closeControlCenter();
         }
     }
@@ -66,6 +65,7 @@ PluginComponent {
 
         if (typeof PluginService !== "undefined" && PluginService) {
             root.mode = PluginService.loadPluginData("dmsScreenshot", "mode", "interactive") || "interactive";
+            root.targetWindow = PluginService.loadPluginData("dmsScreenshot", "targetWindow", "");
             root.showPointer = PluginService.loadPluginData("dmsScreenshot", "showPointer", true);
             root.saveToDisk = PluginService.loadPluginData("dmsScreenshot", "saveToDisk", true);
             root.customPath = PluginService.loadPluginData("dmsScreenshot", "customPath", "") || "";
@@ -73,6 +73,7 @@ PluginComponent {
             root.quality = PluginService.loadPluginData("dmsScreenshot", "quality", 90);
             root.copyToClipboard = PluginService.loadPluginData("dmsScreenshot", "copyToClipboard", true);
             root.showNotify = PluginService.loadPluginData("dmsScreenshot", "showNotify", true);
+            root.showToast = PluginService.loadPluginData("dmsScreenshot", "showToast", true);
         }
 
         let execCmd;
@@ -94,7 +95,15 @@ PluginComponent {
                 }
             }
         } else {
-            let dmsStr = "dms screenshot " + root.mode;
+            let dmsStr = "dms screenshot";
+            
+            // Format mode argument
+            if (root.mode === "window" && root.targetWindow !== "") {
+                dmsStr += " window \"" + root.targetWindow + "\"";
+            } else {
+                dmsStr += " " + root.mode;
+            }
+
             if (root.showPointer) dmsStr += " --cursor on";
             if (!root.saveToDisk) dmsStr += " --no-file";
             if (!root.copyToClipboard) dmsStr += " --no-clipboard";
@@ -115,10 +124,11 @@ PluginComponent {
         Quickshell.execDetached(execCmd);
         root.isTakingScreenshot = false;
         
-        ToastService.showInfo("Screenshot", "Screenshot triggered");
+        if (root.showToast && typeof ToastService !== "undefined") {
+            ToastService.showInfo("Screenshot", "Screenshot triggered");
+        }
     }
 
-    // -- CC Detail Settings -------------------------------------------------------------
     ccDetailContent: Component {
         Rectangle {
             implicitHeight: 450
@@ -147,7 +157,7 @@ PluginComponent {
                 iconName: "screenshot_region"
                 onClicked: {
                     root.takeScreenshot();
-                    if (PopoutService) {
+                    if (typeof PopoutService !== "undefined" && PopoutService) {
                         PopoutService.closeControlCenter();
                     }
                 }
@@ -166,18 +176,18 @@ PluginComponent {
                     id: settingsColumnCC
                     width: parent.width
                     
-                    pluginService: PluginService
+                    pluginService: typeof PluginService !== "undefined" ? PluginService : null
                     pluginId: "dmsScreenshot"
                     defaultPath: root.defaultPath
                     onSaveSetting: function(key, value) {
                         if (key === "mode") root.mode = value;
+                        if (key === "targetWindow") root.targetWindow = value;
                         if (key === "showPointer") root.showPointer = value;
                         if (key === "saveToDisk") root.saveToDisk = value;
                         if (key === "customPath") root.customPath = value;
                         if (key === "format") root.format = value;
                         if (key === "quality") root.quality = value;
                         if (key === "copyToClipboard") root.copyToClipboard = value;
-                        if (key === "showNotify") root.showNotify = value;
 
                         try {
                             if (typeof PluginService !== "undefined" && PluginService) {
@@ -194,7 +204,6 @@ PluginComponent {
         }
     }
 
-    // -- Popout Settings ----------------------------------------------------------------
     popoutWidth: 320
     popoutHeight: 450
     
@@ -220,18 +229,18 @@ PluginComponent {
                 ScreenshotSettingsForm {
                     width: parent.width
                     
-                    pluginService: PluginService
+                    pluginService: typeof PluginService !== "undefined" ? PluginService : null
                     pluginId: "dmsScreenshot"
                     defaultPath: root.defaultPath
                     onSaveSetting: function(key, value) {
                         if (key === "mode") root.mode = value;
+                        if (key === "targetWindow") root.targetWindow = value;
                         if (key === "showPointer") root.showPointer = value;
                         if (key === "saveToDisk") root.saveToDisk = value;
                         if (key === "customPath") root.customPath = value;
                         if (key === "format") root.format = value;
                         if (key === "quality") root.quality = value;
                         if (key === "copyToClipboard") root.copyToClipboard = value;
-                        if (key === "showNotify") root.showNotify = value;
 
                         try {
                             if (typeof PluginService !== "undefined" && PluginService) {

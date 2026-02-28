@@ -49,7 +49,8 @@ PluginSettings {
             {label: "Interactive (Region)", value: "interactive"},
             {label: "Focused Screen", value: "full"},
             {label: "All Screens", value: "all"},
-            {label: "Repeat Last Region", value: "last"}
+            {label: "Repeat Last Region", value: "last"},
+            {label: "Specific Window", value: "window"}
         ]
         defaultValue: "interactive"
     }
@@ -84,6 +85,13 @@ PluginSettings {
         settingKey: "showNotify"
         label: "Show Notification"
         description: "Show system notification after capture"
+        defaultValue: true
+    }
+
+    ToggleSetting {
+        settingKey: "showToast"
+        label: "Show Toast Notification"
+        description: "Show a quick pop-up toast when screenshot is triggered"
         defaultValue: true
     }
 
