@@ -47,3 +47,22 @@ For manual setup or development:
 1. Clone this repository into your DMS extensions/plugins folder:
    ```bash
    git clone [https://github.com/JDKamalakar/dmsScreenshot.git](https://github.com/JDKamalakar/dmsScreenshot.git)
+
+---
+
+### 🐛 Feedback & Contributions
+
+Found a bug or have a feature request? Let’s make this better together.
+
+* **Report Issues:** [GitHub Issues](https://github.com/JDKamalakar/dmsScreenshot/issues/new/choose)
+* **Contributions:** Pull requests are welcome! Please ensure your code follows the shell's design guidelines.
+
+---
+
+## 📜 License
+
+Part of DankMaterialShell. Check the main repository for license information.
+
+## 🤝 Credits
+
+Built for [DankMaterialShell](https://github.com/DankMaterialShell)
