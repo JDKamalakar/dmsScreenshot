@@ -1,7 +1,7 @@
-# 📸 dmsScreenshot
+# 📸 DMS-Screenshot
 
 [![DMS Version](https://img.shields.io/badge/DMS-Compatible-purple.svg)](https://github.com/Dank-Material-Shell)
-[![Maintenance](https://img.shields.io/badge/Maintained%3F-yes-green.svg)](https://github.com/JDKamalakar/dmsScreenshot/graphs/commit-activity)
+[![Maintenance](https://img.shields.io/badge/Maintained%3F-yes-green.svg)](https://github.com/JDKamalakar/DMS-Screenshot/graphs/commit-activity)
 
 A sleek, integrated screenshot utility specifically built for **Dank Material Shell**. Capture your screen with ease and enjoy a workflow that fits perfectly into the DMS aesthetic.
 
@@ -39,14 +39,14 @@ A sleek, integrated screenshot utility specifically built for **Dank Material Sh
 The fastest way to get up and running:
 1. Open your **DMS Settings**.
 2. Navigate to the **Plugin Manager** tab.
-3. Search for `dmsScreenshot` and click **Install**.
+3. Search for `DMS-Screenshot` and click **Install**.
 4. You can also find it on the [Dank Linux Plugin Gallery](https://danklinux.com/plugins#/).
 
 ### 🛠️ Manual Installation
 For manual setup or development:
 1. Clone this repository into your DMS extensions/plugins folder:
    ```bash
-   git clone [https://github.com/JDKamalakar/dmsScreenshot.git](https://github.com/JDKamalakar/dmsScreenshot.git)
+   git clone [https://github.com/JDKamalakar/DMS-Screenshot.git](https://github.com/JDKamalakar/DMS-Screenshot.git)
 
 ---
 
@@ -54,7 +54,7 @@ For manual setup or development:
 
 Found a bug or have a feature request? Let’s make this better together.
 
-* **Report Issues:** [GitHub Issues](https://github.com/JDKamalakar/dmsScreenshot/issues/new/choose)
+* **Report Issues:** [GitHub Issues](https://github.com/JDKamalakar/DMS-Screenshot/issues/new/choose)
 * **Contributions:** Pull requests are welcome! Please ensure your code follows the shell's design guidelines.
 
 ---
