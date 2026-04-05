@@ -2,7 +2,7 @@
     "id": "dmsScreenshot",
     "name": "DMS Screenshot",
     "description": "Control DMS screenshot actions from the Widget & Control Center",
-    "category": "utility",
+    "category": "utilities",
     "version": "1.0.0",
     "author": "JDKamalakar",
     "icon": "screenshot_region",
@@ -23,7 +23,7 @@
     "dependencies": [
         "dms"
     ],
-    "screenshot": "https://github.com/JDKamalakar/dmsScreenshot/blob/main/assets/Dank-Bar-Widget.png",
+    "screenshot": "https://github.com/JDKamalakar/DMS-Screenshot/blob/main/assets/Dank-Bar_Widget.png?raw=true",
     "permissions": [
         "process",
         "settings_read",
