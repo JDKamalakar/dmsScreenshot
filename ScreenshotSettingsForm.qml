@@ -22,6 +22,10 @@ Column {
     property string format: "png"
     property int quality: 90
     property bool copyToClipboard: true
+    property bool showNotify: true
+    property bool stdout: false
+    property string pipeCommand: ""
+    property string output: "" (deprecated)
 
     signal saveSetting(string key, var value)
 
@@ -40,6 +44,9 @@ Column {
         root.format = loadSetting("format", "png") || "png";
         root.quality = loadSetting("quality", 90);
         root.copyToClipboard = loadSetting("copyToClipboard", true);
+        root.showNotify = loadSetting("showNotify", true);
+        root.stdout = loadSetting("stdout", false);
+        root.pipeCommand = loadSetting("pipeCommand", "") || "";
     }
 
     // --- Capture Mode Section ---
@@ -141,7 +148,7 @@ Column {
             DankListView {
                 id: optionsList
                 width: parent.width
-                height: 268 + (root.format === "jpg" ? 48 : 0)
+                height: 312 + (root.format === "jpg" ? 48 : 0)
                 interactive: false
                 currentIndex: -1
 
@@ -151,9 +158,10 @@ Column {
                     { t: "Copy to Clipboard", i: "content_copy", k: "copyToClipboard", type: "toggle" },
                     { t: "Save to Disk", i: "save", k: "saveToDisk", type: "toggle" },
                     { t: "Show Pointer", i: "mouse", k: "showPointer", type: "toggle" },
+                    { t: "Screenshot Editor", i: "output", k: "stdout", type: "toggle" },
                     { t: "Image Format", i: "image", k: "format", type: "format" },
                     { t: "JPEG Quality", i: "high_quality", k: "quality", type: "qualityField" },
-                    { t: "Custom Path", i: "folder", k: "customPath", type: "pathField" }
+                    { t: "Custom Directory", i: "folder", k: "customPath", type: "pathField" }
                 ]
                 
                 delegate: Rectangle {
@@ -163,7 +171,7 @@ Column {
                     height: {
                         if (modelData.type === "format") return 88;
                         if (modelData.type === "qualityField") return root.format === "jpg" ? 48 : 0;
-                        if (modelData.type === "pathField") return 48;
+                        if (modelData.type === "pathField" || modelData.type === "textField") return 48;
                         return 44; 
                     }
 
@@ -224,15 +232,23 @@ Column {
                     // 3. UI FOR TEXT FIELDS (Aligned icons and gap)
                     RowLayout {
                         anchors.fill: parent; anchors.margins: Theme.spacingS; spacing: Theme.spacingM
-                        visible: modelData.type === "qualityField" || modelData.type === "pathField"
+                        visible: modelData.type === "qualityField" || modelData.type === "pathField" || modelData.type === "textField"
 
                         DankIcon { name: modelData.i; color: Theme.surfaceVariantText; size: Theme.iconSize } // Standard size
                         
                         DankTextField {
                             Layout.fillWidth: true
                             height: 40
-                            text: modelData.type === "qualityField" ? root.quality.toString() : root.customPath
-                            placeholderText: modelData.type === "qualityField" ? "JPEG Quality (1-100)" : root.defaultPath
+                            text: {
+                                if (modelData.type === "qualityField") return root.quality.toString();
+                                if (modelData.type === "pathField") return root.customPath;
+                                return root[modelData.k];
+                            }
+                            placeholderText: {
+                                if (modelData.type === "qualityField") return "JPEG Quality (1-100)";
+                                if (modelData.type === "pathField") return root.defaultPath;
+                                return modelData.placeholder || "";
+                            }
                             onTextEdited: function() {
                                 if (modelData.type === "qualityField") {
                                     var v = parseInt(text);
@@ -243,6 +259,9 @@ Column {
                                 } else if (modelData.type === "pathField") {
                                     root.customPath = text.trim();
                                     root.saveSetting("customPath", root.customPath);
+                                } else if (modelData.type === "textField") {
+                                    root[modelData.k] = text.trim();
+                                    root.saveSetting(modelData.k, root[modelData.k]);
                                 }
                             }
                         }

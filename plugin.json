@@ -3,7 +3,7 @@
     "name": "DMS Screenshot",
     "description": "Control DMS screenshot actions from the Widget & Control Center",
     "category": "utilities",
-    "version": "1.0.0",
+    "version": "1.2.0",
     "author": "JDKamalakar",
     "icon": "screenshot_region",
     "type": "widget",

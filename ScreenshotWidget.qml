@@ -23,6 +23,9 @@ PluginComponent {
     property bool copyToClipboard: pluginData.copyToClipboard !== undefined ? pluginData.copyToClipboard : true
     property bool showNotify: pluginData.showNotify !== undefined ? pluginData.showNotify : true
     property bool showToast: pluginData.showToast !== undefined ? pluginData.showToast : true
+    property bool stdout: pluginData.stdout !== undefined ? pluginData.stdout : false
+    property string pipeCommand: pluginData.pipeCommand || ""
+    property string filename: pluginData.filename || ""
 
     // -- Internal ----------------------------------------------------------------------
     property bool isTakingScreenshot: false
@@ -75,42 +78,44 @@ PluginComponent {
             root.copyToClipboard = PluginService.loadPluginData("dmsScreenshot", "copyToClipboard", true);
             root.showNotify = PluginService.loadPluginData("dmsScreenshot", "showNotify", true);
             root.showToast = PluginService.loadPluginData("dmsScreenshot", "showToast", true);
+            root.stdout = PluginService.loadPluginData("dmsScreenshot", "stdout", false);
+            root.pipeCommand = PluginService.loadPluginData("dmsScreenshot", "pipeCommand", "") || "";
+            root.filename = PluginService.loadPluginData("dmsScreenshot", "filename", "") || "";
         }
 
+        let dmsStr = "";
         let execCmd;
+        if (root.mode === "interactive") {
+            dmsStr = "dms screenshot";
+        } else {
+            dmsStr = "dms screenshot " + root.mode;
+        }
+
+        if (root.showPointer) dmsStr += " --cursor on";
+        if (!root.saveToDisk) dmsStr += " --no-file";
+        if (!root.copyToClipboard) dmsStr += " --no-clipboard";
+        if (!root.showNotify) dmsStr += " --no-notify";
+        if (root.stdout) dmsStr += " --stdout";
+        if (root.filename) dmsStr += " --filename \"" + root.filename + "\"";
+        
+        dmsStr += " -f " + root.format;
+        if (root.format === "jpg") dmsStr += " -q " + root.quality;
+
+        if (root.saveToDisk && root.customPath) {
+            if (!root.customPath.match(/\.(png|jpe?g|ppm)$/i)) {
+                dmsStr += " --dir \"" + root.customPath + "\"";
+            } else {
+                dmsStr += " --filename \"" + root.customPath + "\"";
+            }
+        }
+
+        if (root.stdout && root.pipeCommand) {
+            dmsStr += " | " + root.pipeCommand;
+        }
 
         if (root.mode === "interactive") {
-            execCmd = ["dms", "screenshot"];
-            if (root.showPointer) execCmd.push("--cursor", "on");
-            if (!root.saveToDisk) execCmd.push("--no-file");
-            if (!root.copyToClipboard) execCmd.push("--no-clipboard");
-            if (!root.showNotify) execCmd.push("--no-notify");
-            execCmd.push("-f", root.format);
-            if (root.format === "jpg") execCmd.push("-q", root.quality.toString());
-            
-            if (root.saveToDisk && root.customPath) {
-                if (!root.customPath.match(/\.(png|jpe?g|ppm)$/i)) {
-                    execCmd.push("--dir", root.customPath);
-                } else {
-                    execCmd.push("--filename", root.customPath);
-                }
-            }
+            execCmd = ["bash", "-c", dmsStr];
         } else {
-            let dmsStr = "dms screenshot " + root.mode;
-            if (root.showPointer) dmsStr += " --cursor on";
-            if (!root.saveToDisk) dmsStr += " --no-file";
-            if (!root.copyToClipboard) dmsStr += " --no-clipboard";
-            if (!root.showNotify) dmsStr += " --no-notify";
-            dmsStr += " -f " + root.format;
-            if (root.format === "jpg") dmsStr += " -q " + root.quality;
-
-            if (root.saveToDisk && root.customPath) {
-                if (!root.customPath.match(/\.(png|jpe?g|ppm)$/i)) {
-                    dmsStr += " --dir \"" + root.customPath + "\"";
-                } else {
-                    dmsStr += " --filename \"" + root.customPath + "\"";
-                }
-            }
             execCmd = ["bash", "-c", "sleep 0.3; " + dmsStr];
         }
 
@@ -171,6 +176,10 @@ PluginComponent {
                         if (key === "format") root.format = value;
                         if (key === "quality") root.quality = value;
                         if (key === "copyToClipboard") root.copyToClipboard = value;
+                        if (key === "showNotify") root.showNotify = value;
+                        if (key === "stdout") root.stdout = value;
+                        if (key === "pipeCommand") root.pipeCommand = value;
+                        if (key === "filename") root.filename = value;
 
                         try {
                             if (typeof PluginService !== "undefined" && PluginService) {
@@ -224,6 +233,10 @@ PluginComponent {
                         if (key === "format") root.format = value;
                         if (key === "quality") root.quality = value;
                         if (key === "copyToClipboard") root.copyToClipboard = value;
+                        if (key === "showNotify") root.showNotify = value;
+                        if (key === "stdout") root.stdout = value;
+                        if (key === "pipeCommand") root.pipeCommand = value;
+                        if (key === "filename") root.filename = value;
 
                         try {
                             if (typeof PluginService !== "undefined" && PluginService) {
