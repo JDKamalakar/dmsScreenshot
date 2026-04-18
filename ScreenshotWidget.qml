@@ -7,6 +7,7 @@ import qs.Widgets
 import qs.Modules.Plugins
 import QtQuick.Layouts
 import QtCore
+import Qt5Compat.GraphicalEffects
 
 PluginComponent {
     id: root
@@ -129,67 +130,135 @@ PluginComponent {
 
     // -- CC Detail Settings -------------------------------------------------------------
     ccDetailContent: Component {
-        Rectangle {
-            implicitHeight: 450
-            radius: Theme.cornerRadius
-            color: Theme.withAlpha(Theme.surfaceContainerHigh, Theme.popupTransparency)
+        Column {
+            width: parent.width
+            spacing: Theme.spacingM
 
-            DankButton {
-                id: captureBtn
-                anchors.right: parent.right
-                anchors.top: parent.top
-                anchors.topMargin: Theme.spacingM
-                anchors.rightMargin: Theme.spacingM
-                height: 32
-                width: 110
-                text: "Capture"
-                iconName: "screenshot_region"
-                onClicked: {
-                    root.takeScreenshot();
-                    if (typeof PopoutService !== "undefined" && PopoutService) {
-                        PopoutService.closeControlCenter();
+            // --- Capture Header Card ---
+            Item {
+                width: parent.width; height: 68
+                Rectangle {
+                    anchors.fill: parent; radius: Theme.cornerRadius * 1.1
+                    gradient: Gradient {
+                        GradientStop { position: 0.0; color: Qt.rgba(Theme.primary.r, Theme.primary.g, Theme.primary.b, 0.18) }
+                        GradientStop { position: 1.0; color: Qt.rgba(Theme.secondary.r, Theme.secondary.g, Theme.secondary.b, 0.08) }
+                    }
+                    layer.enabled: true
+                    layer.effect: DropShadow {
+                        transparentBorder: true; horizontalOffset: 0; verticalOffset: 3
+                        radius: 12.0; samples: 24
+                        color: Theme.withAlpha(Theme.shadowColor || "#000000", 0.35)
+                    }
+                }
+                RowLayout {
+                    anchors.fill: parent; anchors.margins: Theme.spacingM; spacing: Theme.spacingM
+                    Rectangle {
+                        width: 36; height: 36; radius: 18
+                        color: Qt.rgba(Theme.primary.r, Theme.primary.g, Theme.primary.b, 0.2)
+                        DankIcon { name: "screenshot_region"; size: 20; color: Theme.surfaceText; anchors.centerIn: parent }
+                    }
+                    Column {
+                        Layout.fillWidth: true; Layout.alignment: Qt.AlignVCenter; spacing: 0
+                        StyledText { text: "Screenshot"; font.bold: true; font.pixelSize: Theme.fontSizeLarge; color: Theme.surfaceText }
+                        Item {
+                            width: parent.width; height: 16
+                            StyledText {
+                                id: modeTxtCC
+                                width: parent.width
+                                text: root._getModeText()
+                                font.pixelSize: Theme.fontSizeSmall - 1
+                                color: Theme.primary
+                                opacity: 0.85
+
+                                onTextChanged: subtitleAnimCC.restart()
+                                SequentialAnimation {
+                                    id: subtitleAnimCC
+                                    ParallelAnimation {
+                                        NumberAnimation { target: modeTxtCC; property: "opacity"; to: 0; duration: 150; easing.type: Easing.OutQuad }
+                                        NumberAnimation { target: modeTxtCC; property: "y"; to: 5; duration: 150; easing.type: Easing.OutQuad }
+                                    }
+                                    PropertyAction { target: modeTxtCC; property: "y"; value: -5 }
+                                    ParallelAnimation {
+                                        NumberAnimation { target: modeTxtCC; property: "opacity"; to: 0.85; duration: 150; easing.type: Easing.InQuad }
+                                        NumberAnimation { target: modeTxtCC; property: "y"; to: 0; duration: 150; easing.type: Easing.InQuad }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    DankButton {
+                        id: captureBtnCC
+                        height: 36; width: 130
+                        text: "" // Using manual Row for perfect alignment and animation
+                        
+                        Row {
+                            anchors.centerIn: parent
+                            spacing: 8
+                            
+                            DankIcon {
+                                id: captureBtnIconCC
+                                name: "screenshot_region"
+                                size: 18
+                                color: "white"
+                                
+                                SequentialAnimation on rotation {
+                                    running: captureBtnCC.hovered
+                                    loops: Animation.Infinite
+                                    NumberAnimation { to: -8; duration: 150; easing.type: Easing.InOutQuad }
+                                    NumberAnimation { to: 8; duration: 150; easing.type: Easing.InOutQuad }
+                                    NumberAnimation { to: 0; duration: 150; easing.type: Easing.InOutQuad }
+                                    PauseAnimation { duration: 400 }
+                                }
+                            }
+                            
+                            StyledText {
+                                text: "Capture"
+                                color: "white"
+                                font.pixelSize: Theme.fontSizeSmall
+                                font.bold: true
+                                verticalAlignment: Text.AlignVCenter
+                            }
+                        }
+
+                        onClicked: {
+                            root.takeScreenshot();
+                            if (typeof PopoutService !== "undefined" && PopoutService)
+                                PopoutService.closeControlCenter();
+                        }
+                        
+                        onHoveredChanged: if (hovered) root.showTooltip(root._getModeText(), captureBtnCC)
                     }
                 }
             }
 
-            DankFlickable {
-                anchors.top: captureBtn.bottom
-                anchors.left: parent.left
-                anchors.right: parent.right
-                anchors.bottom: parent.bottom
-                anchors.margins: Theme.spacingM
-                contentHeight: settingsColumnCC.height
-                clip: true
+            // --- Settings Form ---
+            ScreenshotSettingsForm {
+                id: settingsColumnCC
+                width: parent.width
 
-                ScreenshotSettingsForm {
-                    id: settingsColumnCC
-                    width: parent.width
-                    
-                    pluginService: typeof PluginService !== "undefined" ? PluginService : null
-                    pluginId: "dmsScreenshot"
-                    defaultPath: root.defaultPath
-                    onSaveSetting: function(key, value) {
-                        if (key === "mode") root.mode = value;
-                        if (key === "showPointer") root.showPointer = value;
-                        if (key === "saveToDisk") root.saveToDisk = value;
-                        if (key === "customPath") root.customPath = value;
-                        if (key === "format") root.format = value;
-                        if (key === "quality") root.quality = value;
-                        if (key === "copyToClipboard") root.copyToClipboard = value;
-                        if (key === "showNotify") root.showNotify = value;
-                        if (key === "stdout") root.stdout = value;
-                        if (key === "pipeCommand") root.pipeCommand = value;
-                        if (key === "filename") root.filename = value;
+                pluginService: typeof PluginService !== "undefined" ? PluginService : null
+                pluginId: "dmsScreenshot"
+                defaultPath: root.defaultPath
+                onSaveSetting: function(key, value) {
+                    if (key === "mode") root.mode = value;
+                    if (key === "showPointer") root.showPointer = value;
+                    if (key === "saveToDisk") root.saveToDisk = value;
+                    if (key === "customPath") root.customPath = value;
+                    if (key === "format") root.format = value;
+                    if (key === "quality") root.quality = value;
+                    if (key === "copyToClipboard") root.copyToClipboard = value;
+                    if (key === "showNotify") root.showNotify = value;
+                    if (key === "stdout") root.stdout = value;
+                    if (key === "pipeCommand") root.pipeCommand = value;
+                    if (key === "filename") root.filename = value;
 
-                        try {
-                            if (typeof PluginService !== "undefined" && PluginService) {
-                                 PluginService.savePluginData("dmsScreenshot", key, value);
-                            } else if (root.pluginService) {
-                                 root.pluginService.savePluginData("dmsScreenshot", key, value);
-                            }
-                        } catch (e) {
-                            console.error("ScreenshotWidget: Save error:", e);
-                        }
+                    try {
+                        if (typeof PluginService !== "undefined" && PluginService)
+                            PluginService.savePluginData("dmsScreenshot", key, value);
+                        else if (root.pluginService)
+                            root.pluginService.savePluginData("dmsScreenshot", key, value);
+                    } catch (e) {
+                        console.error("ScreenshotWidget: Save error:", e);
                     }
                 }
             }
@@ -197,31 +266,122 @@ PluginComponent {
     }
 
     // -- Popout Settings ----------------------------------------------------------------
-    popoutWidth: 320
-    popoutHeight: 450
-    
+    popoutWidth: 340
+    popoutHeight: 0
+
     popoutContent: Component {
         PopoutComponent {
             id: detailPopout
-            
+            headerText: ""
+            detailsText: ""
+            showCloseButton: false
+
             Column {
+                id: popoutMainCol
                 width: parent.width
                 spacing: Theme.spacingM
+                topPadding: 0; bottomPadding: Theme.spacingL
 
-                DankButton {
-                    text: "Capture"
-                    width: parent.width
-                    height: 36
-                    iconName: "screenshot_region"
-                    onClicked: {
-                        root.closePopout();
-                        root.takeScreenshot();
+                // --- Capture Header Card ---
+                Item {
+                    width: parent.width; height: 68
+                    Rectangle {
+                        anchors.fill: parent; radius: Theme.cornerRadius * 1.1
+                        gradient: Gradient {
+                            GradientStop { position: 0.0; color: Qt.rgba(Theme.primary.r, Theme.primary.g, Theme.primary.b, 0.15) }
+                            GradientStop { position: 1.0; color: Qt.rgba(Theme.secondary.r, Theme.secondary.g, Theme.secondary.b, 0.08) }
+                        }
+                        layer.enabled: true
+                        layer.effect: DropShadow {
+                            transparentBorder: true; horizontalOffset: 0; verticalOffset: 3
+                            radius: 12.0; samples: 24
+                            color: Theme.withAlpha(Theme.shadowColor || "#000000", 0.35)
+                        }
+                    }
+                    RowLayout {
+                        anchors.fill: parent; anchors.margins: Theme.spacingM; spacing: Theme.spacingM
+                        Rectangle {
+                            width: 38; height: 38; radius: 19
+                            color: Qt.rgba(Theme.primary.r, Theme.primary.g, Theme.primary.b, 0.2)
+                            DankIcon { name: "screenshot_region"; size: 22; color: Theme.surfaceText; anchors.centerIn: parent }
+                        }
+                        Column {
+                            Layout.fillWidth: true; Layout.alignment: Qt.AlignVCenter; spacing: 0
+                            StyledText { text: "Screenshot"; font.bold: true; font.pixelSize: Theme.fontSizeLarge; color: Theme.surfaceText }
+                            Item {
+                                width: parent.width; height: 16
+                                StyledText {
+                                    id: modeTxtPop
+                                    width: parent.width
+                                    text: root._getModeText()
+                                    font.pixelSize: Theme.fontSizeSmall - 1
+                                    color: Theme.primary
+                                    opacity: 0.85
+
+                                    onTextChanged: subtitleAnimPop.restart()
+                                    SequentialAnimation {
+                                        id: subtitleAnimPop
+                                        ParallelAnimation {
+                                            NumberAnimation { target: modeTxtPop; property: "opacity"; to: 0; duration: 150; easing.type: Easing.OutQuad }
+                                            NumberAnimation { target: modeTxtPop; property: "y"; to: 5; duration: 150; easing.type: Easing.OutQuad }
+                                        }
+                                        PropertyAction { target: modeTxtPop; property: "y"; value: -5 }
+                                        ParallelAnimation {
+                                            NumberAnimation { target: modeTxtPop; property: "opacity"; to: 0.85; duration: 200; easing.type: Easing.InQuad }
+                                            NumberAnimation { target: modeTxtPop; property: "y"; to: 0; duration: 200; easing.type: Easing.InQuad }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        DankButton {
+                            id: captureBtnPop
+                            height: 36; width: 120
+                            text: "" // Using manual Row for perfect alignment and animation
+
+                            Row {
+                                anchors.centerIn: parent
+                                spacing: 8
+                                
+                                DankIcon {
+                                    id: captureBtnIconPop
+                                    name: "screenshot_region"
+                                    size: 18
+                                    color: "white"
+                                    
+                                    SequentialAnimation on rotation {
+                                        running: captureBtnPop.hovered
+                                        loops: Animation.Infinite
+                                        NumberAnimation { to: -8; duration: 150; easing.type: Easing.InOutQuad }
+                                        NumberAnimation { to: 8; duration: 150; easing.type: Easing.InOutQuad }
+                                        NumberAnimation { to: 0; duration: 150; easing.type: Easing.InOutQuad }
+                                        PauseAnimation { duration: 400 }
+                                    }
+                                }
+                                
+                                StyledText {
+                                    text: "Capture"
+                                    color: "white"
+                                    font.pixelSize: Theme.fontSizeSmall
+                                    font.bold: true
+                                    verticalAlignment: Text.AlignVCenter
+                                }
+                            }
+
+                            onClicked: {
+                                root.closePopout();
+                                root.takeScreenshot();
+                            }
+                            
+                            onHoveredChanged: if (hovered) root.showTooltip(root._getModeText(), captureBtnPop)
+                        }
                     }
                 }
 
+                // --- Settings Form ---
                 ScreenshotSettingsForm {
                     width: parent.width
-                    
+
                     pluginService: typeof PluginService !== "undefined" ? PluginService : null
                     pluginId: "dmsScreenshot"
                     defaultPath: root.defaultPath
@@ -239,16 +399,16 @@ PluginComponent {
                         if (key === "filename") root.filename = value;
 
                         try {
-                            if (typeof PluginService !== "undefined" && PluginService) {
-                                 PluginService.savePluginData("dmsScreenshot", key, value);
-                            } else if (root.pluginService) {
-                                 root.pluginService.savePluginData("dmsScreenshot", key, value);
-                            }
+                            if (typeof PluginService !== "undefined" && PluginService)
+                                PluginService.savePluginData("dmsScreenshot", key, value);
+                            else if (root.pluginService)
+                                root.pluginService.savePluginData("dmsScreenshot", key, value);
                         } catch (e) {
                             console.error("ScreenshotWidget: Popout save error:", e);
                         }
                     }
                 }
+
             }
         }
     }
