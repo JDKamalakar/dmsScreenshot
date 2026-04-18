@@ -280,7 +280,7 @@ PluginComponent {
                 id: popoutMainCol
                 width: parent.width
                 spacing: Theme.spacingM
-                topPadding: 0; bottomPadding: Theme.spacingL
+                topPadding: 0; bottomPadding: 2
 
                 // --- Capture Header Card ---
                 Item {

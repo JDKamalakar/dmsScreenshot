@@ -101,39 +101,73 @@ Column {
                     readonly property bool hovered: modeMouseArea.containsMouse
                     readonly property int  totalCount: 4   // fixed 4 items
 
-                    // Dynamic background with animated radius and colors
-                    Rectangle {
+                    // Dynamic background with Canvas for selective corner rounding
+                    Canvas {
                         id: modeBg
                         anchors.fill: parent
+
+                        property real innerRadius: 6
+                        property real outerRadius: 12
+                        property bool isFirst: index === 0
+                        property bool isLast:  index === modeDelegate.totalCount - 1
                         
-                        // Large uniform radius when selected, otherwise adaptive but smaller
-                        radius: isSelected ? 22 : 6
-                        
-                        color: isSelected
+                        property real tlr: isFirst ? outerRadius : innerRadius
+                        property real trr: isFirst ? outerRadius : innerRadius
+                        property real blr: isLast ? outerRadius : innerRadius
+                        property real brr: isLast ? outerRadius : innerRadius
+
+                        property real tlrAnim: tlr; Behavior on tlrAnim { NumberAnimation { duration: 150 } }
+                        property real trrAnim: trr; Behavior on trrAnim { NumberAnimation { duration: 150 } }
+                        property real blrAnim: blr; Behavior on blrAnim { NumberAnimation { duration: 150 } }
+                        property real brrAnim: brr; Behavior on brrAnim { NumberAnimation { duration: 150 } }
+
+                        property color paintColor: isSelected
                             ? Qt.rgba(Theme.primary.r, Theme.primary.g, Theme.primary.b, 0.18)
                             : hovered
                                 ? Qt.rgba(Theme.primary.r, Theme.primary.g, Theme.primary.b, 0.1)
                                 : Qt.rgba(Theme.secondary.r, Theme.secondary.g, Theme.secondary.b, 0.04)
                         
-                        border.width: 1
-                        border.color: isSelected
+                        property color paintBorder: isSelected
                             ? Qt.rgba(Theme.primary.r, Theme.primary.g, Theme.primary.b, 0.6)
                             : hovered
                                 ? Qt.rgba(Theme.primary.r, Theme.primary.g, Theme.primary.b, 0.4)
                                 : Qt.rgba(Theme.secondary.r, Theme.secondary.g, Theme.secondary.b, 0.15)
-                        
-                        // Smooth transitions for all properties
-                        Behavior on radius       { NumberAnimation { duration: 250; easing.type: Easing.OutQuart } }
-                        Behavior on color        { ColorAnimation  { duration: 200 } }
-                        Behavior on border.color { ColorAnimation  { duration: 200 } }
+
+                        onTlrAnimChanged: requestPaint()
+                        onTrrAnimChanged: requestPaint()
+                        onBlrAnimChanged: requestPaint()
+                        onBrrAnimChanged: requestPaint()
+                        onPaintColorChanged: requestPaint()
+                        onPaintBorderChanged: requestPaint()
+
+                        onPaint: {
+                            var ctx = getContext("2d");
+                            ctx.reset();
+                            ctx.beginPath();
+                            ctx.moveTo(tlrAnim, 0);
+                            ctx.lineTo(width - trrAnim, 0);
+                            ctx.arcTo(width, 0, width, trrAnim, trrAnim);
+                            ctx.lineTo(width, height - brrAnim);
+                            ctx.arcTo(width, height, width - brrAnim, height, brrAnim);
+                            ctx.lineTo(blrAnim, height);
+                            ctx.arcTo(0, height, 0, height - blrAnim, blrAnim);
+                            ctx.lineTo(0, tlrAnim);
+                            ctx.arcTo(0, 0, tlrAnim, 0, tlrAnim);
+                            ctx.closePath();
+                            ctx.fillStyle = paintColor;
+                            ctx.fill();
+                            ctx.strokeStyle = paintBorder;
+                            ctx.lineWidth = 1;
+                            ctx.stroke();
+                        }
 
                         Rectangle { 
-                            anchors.fill: parent; radius: parent.radius; color: "white"
+                            anchors.fill: parent; radius: parent.tlr; color: "white"
                             opacity: hovered ? 0.05 : 0; Behavior on opacity { NumberAnimation { duration: 150 } } 
                         }
                     }
 
-                    DankRipple { id: modeRipple; cornerRadius: isSelected ? 22 : 6; rippleColor: Theme.primary }
+                    DankRipple { id: modeRipple; cornerRadius: modeBg.tlr; rippleColor: Theme.primary }
 
                     RowLayout {
                         anchors.fill: parent; anchors.margins: Theme.spacingS; spacing: Theme.spacingM
@@ -212,7 +246,7 @@ Column {
             DankListView {
                 id: optionsList
                 width: parent.width
-                height: 346 + (root.format === "jpg" ? 60 : 0)
+                height: contentHeight
                 interactive: false
                 currentIndex: -1
                 spacing: 4
@@ -224,6 +258,13 @@ Column {
                     if (root.format === "jpg") base.push("quality");
                     base.push("customPath");
                     return base;
+                }
+
+                function getGroup(key) {
+                    if (key === "copyToClipboard" || key === "saveToDisk" || key === "showPointer" || key === "stdout") return 1;
+                    if (key === "format" || key === "quality") return 2;
+                    if (key === "customPath") return 3;
+                    return 0;
                 }
 
                 model: [
@@ -243,34 +284,85 @@ Column {
 
                     readonly property var  vk:      optionsList.visibleKeys
                     readonly property int  vIdx:    vk.indexOf(modelData.k)
-                    readonly property bool isFirst: vIdx === 0
-                    readonly property bool isLast:  vIdx === vk.length - 1
+                    readonly property int  myGroup: optionsList.getGroup(modelData.k)
+                    readonly property bool isVisible: vIdx !== -1
+                    readonly property bool isFirst: isVisible && (vIdx === 0 || optionsList.getGroup(vk[vIdx - 1]) !== myGroup)
+                    readonly property bool isLast:  isVisible && (vIdx === vk.length - 1 || optionsList.getGroup(vk[vIdx + 1]) !== myGroup)
                     readonly property bool hovered: optMouseArea.containsMouse
 
-                    height: {
+                    property real baseHeight: {
                         if (modelData.type === "format")       return 88;
-                        if (modelData.type === "qualityField") return root.format === "jpg" ? 56 : 0;
+                        if (modelData.type === "qualityField") return root.format === "jpg" ? 72 : 0;
                         if (modelData.type === "pathField")    return 72;
                         return 44; 
                     }
 
+                    readonly property real groupMargin: (isLast && vIdx !== vk.length - 1 && baseHeight > 0) ? 8 : 0
+                    
+                    height: baseHeight + groupMargin
+
                     Behavior on height { NumberAnimation { duration: 100; easing.type: Easing.OutQuart } }
                     
-                    visible: height > 0
-                    opacity: height > 0 ? 1 : 0
+                    visible: baseHeight > 0
+                    opacity: baseHeight > 0 ? 1 : 0
                     Behavior on opacity { NumberAnimation { duration: 150 } }
 
-                    Rectangle {
+                    Item {
+                        id: contentCard
+                        width: parent.width
+                        height: parent.baseHeight
+                        clip: true
+
+                    Canvas {
+                        id: optBg
                         anchors.fill: parent
-                        radius: isFirst ? 12 : (isLast ? 12 : 4)
-                        color: hovered ? Qt.rgba(Theme.primary.r, Theme.primary.g, Theme.primary.b, 0.08) : Qt.rgba(Theme.secondary.r, Theme.secondary.g, Theme.secondary.b, 0.05)
-                        border.width: 1
-                        border.color: hovered ? Qt.rgba(Theme.primary.r, Theme.primary.g, Theme.primary.b, 0.4) : Qt.rgba(Theme.secondary.r, Theme.secondary.g, Theme.secondary.b, 0.15)
-                        Behavior on color        { ColorAnimation { duration: 150 } }
-                        Behavior on border.color { ColorAnimation { duration: 150 } }
+
+                        property real innerRadius: 6
+                        property real outerRadius: 12
+                        
+                        property real tlr: isFirst ? outerRadius : innerRadius
+                        property real trr: isFirst ? outerRadius : innerRadius
+                        property real blr: isLast ? outerRadius : innerRadius
+                        property real brr: isLast ? outerRadius : innerRadius
+
+                        property real tlrAnim: tlr; Behavior on tlrAnim { NumberAnimation { duration: 150 } }
+                        property real trrAnim: trr; Behavior on trrAnim { NumberAnimation { duration: 150 } }
+                        property real blrAnim: blr; Behavior on blrAnim { NumberAnimation { duration: 150 } }
+                        property real brrAnim: brr; Behavior on brrAnim { NumberAnimation { duration: 150 } }
+
+                        property color paintColor: hovered ? Qt.rgba(Theme.primary.r, Theme.primary.g, Theme.primary.b, 0.08) : Qt.rgba(Theme.secondary.r, Theme.secondary.g, Theme.secondary.b, 0.06)
+                        property color paintBorder: hovered ? Qt.rgba(Theme.primary.r, Theme.primary.g, Theme.primary.b, 0.4) : Qt.rgba(Theme.secondary.r, Theme.secondary.g, Theme.secondary.b, 0.15)
+
+                        onTlrAnimChanged: requestPaint()
+                        onTrrAnimChanged: requestPaint()
+                        onBlrAnimChanged: requestPaint()
+                        onBrrAnimChanged: requestPaint()
+                        onPaintColorChanged: requestPaint()
+                        onPaintBorderChanged: requestPaint()
+
+                        onPaint: {
+                            var ctx = getContext("2d");
+                            ctx.reset();
+                            ctx.beginPath();
+                            ctx.moveTo(tlrAnim, 0);
+                            ctx.lineTo(width - trrAnim, 0);
+                            ctx.arcTo(width, 0, width, trrAnim, trrAnim);
+                            ctx.lineTo(width, height - brrAnim);
+                            ctx.arcTo(width, height, width - brrAnim, height, brrAnim);
+                            ctx.lineTo(blrAnim, height);
+                            ctx.arcTo(0, height, 0, height - blrAnim, blrAnim);
+                            ctx.lineTo(0, tlrAnim);
+                            ctx.arcTo(0, 0, tlrAnim, 0, tlrAnim);
+                            ctx.closePath();
+                            ctx.fillStyle = paintColor;
+                            ctx.fill();
+                            ctx.strokeStyle = paintBorder;
+                            ctx.lineWidth = 1;
+                            ctx.stroke();
+                        }
                     }
 
-                    DankRipple { id: optRipple; cornerRadius: parent.radius; rippleColor: Theme.primary; visible: modelData.type === "toggle" }
+                    DankRipple { id: optRipple; cornerRadius: optBg.tlr; rippleColor: Theme.primary; visible: modelData.type === "toggle" }
 
                     RowLayout {
                         anchors.fill: parent; anchors.margins: Theme.spacingS; spacing: Theme.spacingM
@@ -335,6 +427,7 @@ Column {
                         acceptedButtons: modelData.type === "toggle" ? Qt.LeftButton : Qt.NoButton
                         onPressed: if (modelData.type === "toggle") optRipple.trigger(mouse.x, mouse.y)
                         onClicked: if (modelData.type === "toggle") { root[modelData.k] = !root[modelData.k]; root.saveSetting(modelData.k, root[modelData.k]); }
+                    }
                     }
                 }
             }
