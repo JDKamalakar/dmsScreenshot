@@ -79,21 +79,20 @@ Column {
                 StyledText { text: "Capture Mode"; font.pixelSize: Theme.fontSizeSmall; font.weight: Font.Bold; color: Theme.surfaceText; Layout.fillWidth: true }
             }
 
-            DankListView {
+            Column {
                 id: modeList
                 width: parent.width
-                height: 188
-                interactive: false
                 spacing: 4
 
-                model: [
-                    { label: "Interactive",    val: "interactive", ic: "touch_app"     },
-                    { label: "Focused Screen", val: "full",        ic: "monitor"       },
-                    { label: "All Screens",    val: "all",         ic: "monitor_weight"},
-                    { label: "Repeat Last",    val: "last",        ic: "history"       }
-                ]
+                Repeater {
+                    model: [
+                        { label: "Interactive",    val: "interactive", ic: "touch_app"     },
+                        { label: "Focused Screen", val: "full",        ic: "monitor"       },
+                        { label: "All Screens",    val: "all",         ic: "monitor_weight"},
+                        { label: "Repeat Last",    val: "last",        ic: "history"       }
+                    ]
 
-                delegate: Item {
+                    delegate: Item {
                     id: modeDelegate
                     width: modeList.width
                     height: 44
@@ -207,8 +206,9 @@ Column {
                             root.saveSetting("mode", modelData.val);
                         }
                     }
-                }
-            }
+                } // End Item
+                } // End Repeater
+            } // End Column
         }
     }
 
@@ -243,15 +243,10 @@ Column {
                 StyledText { text: "Options"; font.pixelSize: Theme.fontSizeSmall; font.weight: Font.Bold; color: Theme.surfaceText; Layout.fillWidth: true }
             }
 
-            DankListView {
+            Column {
                 id: optionsList
                 width: parent.width
-                height: contentHeight
-                interactive: false
-                currentIndex: -1
                 spacing: 4
-
-                Behavior on height { NumberAnimation { duration: 100; easing.type: Easing.OutQuart } }
 
                 readonly property var visibleKeys: {
                     let base = ["copyToClipboard", "saveToDisk", "showPointer", "stdout", "format"];
@@ -267,17 +262,18 @@ Column {
                     return 0;
                 }
 
-                model: [
-                    { t: "Copy to Clipboard", i: "content_copy",  k: "copyToClipboard", type: "toggle"      },
-                    { t: "Save to Disk",       i: "save",          k: "saveToDisk",      type: "toggle"      },
-                    { t: "Show Pointer",       i: "mouse",         k: "showPointer",     type: "toggle"      },
-                    { t: "Screenshot Editor",  i: "output",        k: "stdout",          type: "toggle"      },
-                    { t: "Image Format",       i: "image",         k: "format",          type: "format"      },
-                    { t: "JPEG Quality",       i: "high_quality",  k: "quality",         type: "qualityField"},
-                    { t: "Custom Directory",   i: "folder",        k: "customPath",      type: "pathField"   }
-                ]
+                Repeater {
+                    model: [
+                        { t: "Copy to Clipboard", i: "content_copy",  k: "copyToClipboard", type: "toggle"      },
+                        { t: "Save to Disk",       i: "save",          k: "saveToDisk",      type: "toggle"      },
+                        { t: "Show Pointer",       i: "mouse",         k: "showPointer",     type: "toggle"      },
+                        { t: "Screenshot Editor",  i: "output",        k: "stdout",          type: "toggle"      },
+                        { t: "Image Format",       i: "image",         k: "format",          type: "format"      },
+                        { t: "JPEG Quality",       i: "high_quality",  k: "quality",         type: "qualityField"},
+                        { t: "Custom Directory",   i: "folder",        k: "customPath",      type: "pathField"   }
+                    ]
 
-                delegate: Item {
+                    delegate: Item {
                     id: optDelegate
                     width: optionsList.width
                     clip: true
@@ -429,8 +425,9 @@ Column {
                         onClicked: if (modelData.type === "toggle") { root[modelData.k] = !root[modelData.k]; root.saveSetting(modelData.k, root[modelData.k]); }
                     }
                     }
-                }
-            }
-        }
-    }
-}
+                } // End Item
+            } // End Repeater
+        } // End Column optionsList
+        } // End Column optionsColumnCC
+    } // End StyledRect
+} // End root Item

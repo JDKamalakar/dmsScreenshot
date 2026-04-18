@@ -8,6 +8,7 @@ import qs.Modules.Plugins
 import QtQuick.Layouts
 import QtCore
 import Qt5Compat.GraphicalEffects
+import QtQuick.Controls
 
 PluginComponent {
     id: root
@@ -130,8 +131,16 @@ PluginComponent {
 
     // -- CC Detail Settings -------------------------------------------------------------
     ccDetailContent: Component {
-        Column {
+        ScrollView {
             width: parent.width
+            height: parent.height
+            clip: false
+            ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
+            ScrollBar.vertical.policy: ScrollBar.AlwaysOff
+
+            Column {
+                id: ccDetailCol
+                width: parent.width
             spacing: Theme.spacingM
 
             // --- Capture Header Card ---
@@ -257,10 +266,11 @@ PluginComponent {
                     } catch (e) {
                         console.error("ScreenshotWidget: Save error:", e);
                     }
-                }
-            }
-        }
-    }
+                } // function
+            } // ScreenshotSettingsForm
+        } // Column
+        } // ScrollView
+    } // Component
 
     // -- Popout Settings ----------------------------------------------------------------
     popoutWidth: 340
