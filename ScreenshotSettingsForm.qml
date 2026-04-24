@@ -52,7 +52,7 @@ Column {
 
     // --- Capture Mode Section ---
     StyledRect {
-        width: parent.width
+        width: parent.width; anchors.horizontalCenter: parent.horizontalCenter
         height: modeColumnCC.implicitHeight + Theme.spacingM * 2
         radius: Theme.cornerRadius
         color: Theme.withAlpha(Theme.surfaceContainerHigh, Theme.popupTransparency)
@@ -221,7 +221,7 @@ Column {
 
     // --- Options Section ---
     StyledRect {
-        width: parent.width
+        width: parent.width; anchors.horizontalCenter: parent.horizontalCenter
         height: optionsColumnCC.implicitHeight + Theme.spacingM * 2
         radius: Theme.cornerRadius
         color: Theme.withAlpha(Theme.surfaceContainerHigh, Theme.popupTransparency)

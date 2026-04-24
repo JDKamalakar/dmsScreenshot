@@ -141,11 +141,12 @@ PluginComponent {
             Column {
                 id: ccDetailCol
                 width: parent.width
-            spacing: Theme.spacingM
+                padding: 16
+                spacing: Theme.spacingM
 
             // --- Capture Header Card ---
             StyledRect {
-                width: parent.width; height: 68
+                width: parent.width - 32; anchors.horizontalCenter: parent.horizontalCenter; height: 68
                 radius: Theme.cornerRadius
                 color: Theme.withAlpha(Theme.surfaceContainerHigh, Theme.popupTransparency)
                 border.width: 1
@@ -240,7 +241,7 @@ PluginComponent {
             // --- Settings Form ---
             ScreenshotSettingsForm {
                 id: settingsColumnCC
-                width: parent.width
+                width: parent.width - 32; anchors.horizontalCenter: parent.horizontalCenter
 
                 pluginService: typeof PluginService !== "undefined" ? PluginService : null
                 pluginId: "dmsScreenshot"
@@ -286,12 +287,13 @@ PluginComponent {
             Column {
                 id: popoutMainCol
                 width: parent.width
+                topPadding: 0
+                bottomPadding: 2
                 spacing: Theme.spacingM
-                topPadding: 0; bottomPadding: 2
 
                 // --- Capture Header Card ---
                 StyledRect {
-                    width: parent.width; height: 68
+                    width: parent.width; anchors.horizontalCenter: parent.horizontalCenter; height: 68
                     radius: Theme.cornerRadius
                     color: Theme.withAlpha(Theme.surfaceContainerHigh, Theme.popupTransparency)
                     border.width: 1
@@ -384,7 +386,7 @@ PluginComponent {
 
                 // --- Settings Form ---
                 ScreenshotSettingsForm {
-                    width: parent.width
+                    width: parent.width; anchors.horizontalCenter: parent.horizontalCenter
 
                     pluginService: typeof PluginService !== "undefined" ? PluginService : null
                     pluginId: "dmsScreenshot"
