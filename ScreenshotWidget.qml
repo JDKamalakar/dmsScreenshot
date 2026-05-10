@@ -163,11 +163,7 @@ PluginComponent {
             dmsStr += " | " + root.pipeCommand;
         }
 
-        if (root.mode === "interactive") {
-            execCmd = ["bash", "-c", dmsStr];
-        } else {
-            execCmd = ["bash", "-c", "sleep 0.3; " + dmsStr];
-        }
+        execCmd = ["bash", "-c", "sleep 0.3; " + dmsStr];
 
         root._pendingExecCmd = execCmd;
 
