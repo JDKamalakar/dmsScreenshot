@@ -67,6 +67,25 @@ PluginSettings {
                     defaultValue: "interactive"
                 }
             }
+
+            Row {
+                width: parent.width
+                spacing: Theme.spacingM
+                DankIcon { name: "schedule"; size: 22; anchors.verticalCenter: parent.verticalCenter; opacity: 0.8 }
+                SelectionSetting {
+                    width: parent.width - 22 - Theme.spacingM
+                    settingKey: "delaySeconds"
+                    label: "Capture Delay"
+                    description: "Wait before the shutter fires (ignored in Interactive mode)"
+                    options: [
+                        {label: "Off", value: "0"},
+                        {label: "3 seconds", value: "3"},
+                        {label: "5 seconds", value: "5"},
+                        {label: "10 seconds", value: "10"}
+                    ]
+                    defaultValue: "0"
+                }
+            }
         }
     }
 

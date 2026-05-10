@@ -28,10 +28,12 @@ PluginComponent {
     property bool stdout: pluginData.stdout !== undefined ? pluginData.stdout : false
     property string pipeCommand: pluginData.pipeCommand || ""
     property string filename: pluginData.filename || ""
+    property int delaySeconds: pluginData.delaySeconds !== undefined ? pluginData.delaySeconds : 0
 
     // -- Internal ----------------------------------------------------------------------
     property bool isTakingScreenshot: false
     property string defaultPath: ""
+    property var _pendingExecCmd: null
 
     Process {
         id: defaultPathDetector
@@ -46,6 +48,13 @@ PluginComponent {
         }
     }
 
+    Timer {
+        id: pendingCaptureTimer
+        interval: 0
+        repeat: false
+        onTriggered: root._fireCapture()
+    }
+
     ccWidgetIcon: "screenshot_region"
     ccWidgetPrimaryText: "Screenshot"
     ccWidgetSecondaryText: _getModeText()
@@ -58,6 +67,42 @@ PluginComponent {
         if (root.mode === "all") return "All Screens"
         if (root.mode === "last") return "Repeat Last"
         return "Screenshot"
+    }
+
+    // Expands strftime-style date tokens in user-provided path/filename strings.
+    // Only tokens whose output is a fixed safe character set ([0-9-:]) are supported,
+    // so substitution can never introduce new shell metacharacters. Unknown %X tokens
+    // are left as-is.
+    function _expandFilenameTemplate(s) {
+        if (!s || s.indexOf("%") === -1) return s;
+        var d = new Date();
+        var pad2 = function(n) { return n < 10 ? "0" + n : "" + n; };
+        var pad3 = function(n) { return n < 10 ? "00" + n : (n < 100 ? "0" + n : "" + n); };
+        var Y = "" + d.getFullYear();
+        var y = pad2(d.getFullYear() % 100);
+        var m = pad2(d.getMonth() + 1);
+        var day = pad2(d.getDate());
+        var H = pad2(d.getHours());
+        var M = pad2(d.getMinutes());
+        var S = pad2(d.getSeconds());
+        var startOfYear = new Date(d.getFullYear(), 0, 0);
+        var j = pad3(Math.floor((d - startOfYear) / 86400000));
+        var e = "" + Math.floor(d.getTime() / 1000);
+        return s.replace(/%(.)/g, function(match, t) {
+            if (t === "Y") return Y;
+            if (t === "y") return y;
+            if (t === "m") return m;
+            if (t === "d") return day;
+            if (t === "H") return H;
+            if (t === "M") return M;
+            if (t === "S") return S;
+            if (t === "j") return j;
+            if (t === "e") return e;
+            if (t === "F") return Y + "-" + m + "-" + day;
+            if (t === "T") return H + ":" + M + ":" + S;
+            if (t === "%") return "%";
+            return match;
+        });
     }
 
     onCcWidgetToggled: {
@@ -84,6 +129,7 @@ PluginComponent {
             root.stdout = PluginService.loadPluginData("dmsScreenshot", "stdout", false);
             root.pipeCommand = PluginService.loadPluginData("dmsScreenshot", "pipeCommand", "") || "";
             root.filename = PluginService.loadPluginData("dmsScreenshot", "filename", "") || "";
+            root.delaySeconds = parseInt(PluginService.loadPluginData("dmsScreenshot", "delaySeconds", 0)) || 0;
         }
 
         let dmsStr = "";
@@ -99,16 +145,17 @@ PluginComponent {
         if (!root.copyToClipboard) dmsStr += " --no-clipboard";
         if (!root.showNotify) dmsStr += " --no-notify";
         if (root.stdout) dmsStr += " --stdout";
-        if (root.filename) dmsStr += " --filename \"" + root.filename + "\"";
-        
+        if (root.filename) dmsStr += " --filename \"" + root._expandFilenameTemplate(root.filename) + "\"";
+
         dmsStr += " -f " + root.format;
         if (root.format === "jpg") dmsStr += " -q " + root.quality;
 
         if (root.saveToDisk && root.customPath) {
-            if (!root.customPath.match(/\.(png|jpe?g|ppm)$/i)) {
-                dmsStr += " --dir \"" + root.customPath + "\"";
+            const expandedPath = root._expandFilenameTemplate(root.customPath);
+            if (!expandedPath.match(/\.(png|jpe?g|ppm)$/i)) {
+                dmsStr += " --dir \"" + expandedPath + "\"";
             } else {
-                dmsStr += " --filename \"" + root.customPath + "\"";
+                dmsStr += " --filename \"" + expandedPath + "\"";
             }
         }
 
@@ -116,15 +163,26 @@ PluginComponent {
             dmsStr += " | " + root.pipeCommand;
         }
 
-        if (root.mode === "interactive") {
-            execCmd = ["bash", "-c", dmsStr];
-        } else {
-            execCmd = ["bash", "-c", "sleep 0.3; " + dmsStr];
-        }
+        execCmd = ["bash", "-c", "sleep 0.3; " + dmsStr];
 
-        Quickshell.execDetached(execCmd);
+        root._pendingExecCmd = execCmd;
+
+        const useDelay = root.delaySeconds > 0 && root.mode !== "interactive";
+        if (useDelay) {
+            pendingCaptureTimer.interval = root.delaySeconds * 1000;
+            pendingCaptureTimer.start();
+        } else {
+            root._fireCapture();
+        }
+    }
+
+    function _fireCapture() {
+        if (root._pendingExecCmd) {
+            Quickshell.execDetached(root._pendingExecCmd);
+            root._pendingExecCmd = null;
+        }
         root.isTakingScreenshot = false;
-        
+
         if (root.showToast && typeof ToastService !== "undefined") {
             ToastService.showInfo("Screenshot", "Screenshot triggered");
         }
@@ -298,6 +356,7 @@ PluginComponent {
                     if (key === "stdout") root.stdout = value;
                     if (key === "pipeCommand") root.pipeCommand = value;
                     if (key === "filename") root.filename = value;
+                    if (key === "delaySeconds") root.delaySeconds = value;
 
                     try {
                         if (typeof PluginService !== "undefined" && PluginService)
@@ -481,6 +540,7 @@ PluginComponent {
                         if (key === "stdout") root.stdout = value;
                         if (key === "pipeCommand") root.pipeCommand = value;
                         if (key === "filename") root.filename = value;
+                        if (key === "delaySeconds") root.delaySeconds = value;
 
                         try {
                             if (typeof PluginService !== "undefined" && PluginService)
