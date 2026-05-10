@@ -29,6 +29,7 @@ Integrated screenshot utility for Dank Material Shell – capture your workflow 
 * **Smart Snapping**: Quickly capture specific application windows with precision.
 * **Material Aesthetics**: Smooth animations and transitions that feel native to DMS.
 * **Integrated Workflow**: Automatically save to disk, copy to clipboard, or pipe to an editor.
+* **Filename Templates**: Insert date and time tokens like `%Y`, `%m`, `%d`, `%H`, `%M`, `%S` directly into custom paths and filenames.
 * **Deep Settings**: Full control over output format, quality, and notification behavior.
 
 </div>

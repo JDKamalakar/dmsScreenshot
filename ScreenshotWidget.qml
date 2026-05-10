@@ -60,6 +60,42 @@ PluginComponent {
         return "Screenshot"
     }
 
+    // Expands strftime-style date tokens in user-provided path/filename strings.
+    // Only tokens whose output is a fixed safe character set ([0-9-:]) are supported,
+    // so substitution can never introduce new shell metacharacters. Unknown %X tokens
+    // are left as-is.
+    function _expandFilenameTemplate(s) {
+        if (!s || s.indexOf("%") === -1) return s;
+        var d = new Date();
+        var pad2 = function(n) { return n < 10 ? "0" + n : "" + n; };
+        var pad3 = function(n) { return n < 10 ? "00" + n : (n < 100 ? "0" + n : "" + n); };
+        var Y = "" + d.getFullYear();
+        var y = pad2(d.getFullYear() % 100);
+        var m = pad2(d.getMonth() + 1);
+        var day = pad2(d.getDate());
+        var H = pad2(d.getHours());
+        var M = pad2(d.getMinutes());
+        var S = pad2(d.getSeconds());
+        var startOfYear = new Date(d.getFullYear(), 0, 0);
+        var j = pad3(Math.floor((d - startOfYear) / 86400000));
+        var e = "" + Math.floor(d.getTime() / 1000);
+        return s.replace(/%(.)/g, function(match, t) {
+            if (t === "Y") return Y;
+            if (t === "y") return y;
+            if (t === "m") return m;
+            if (t === "d") return day;
+            if (t === "H") return H;
+            if (t === "M") return M;
+            if (t === "S") return S;
+            if (t === "j") return j;
+            if (t === "e") return e;
+            if (t === "F") return Y + "-" + m + "-" + day;
+            if (t === "T") return H + ":" + M + ":" + S;
+            if (t === "%") return "%";
+            return match;
+        });
+    }
+
     onCcWidgetToggled: {
         takeScreenshot();
         if (typeof PopoutService !== "undefined" && PopoutService) {
@@ -99,16 +135,17 @@ PluginComponent {
         if (!root.copyToClipboard) dmsStr += " --no-clipboard";
         if (!root.showNotify) dmsStr += " --no-notify";
         if (root.stdout) dmsStr += " --stdout";
-        if (root.filename) dmsStr += " --filename \"" + root.filename + "\"";
-        
+        if (root.filename) dmsStr += " --filename \"" + root._expandFilenameTemplate(root.filename) + "\"";
+
         dmsStr += " -f " + root.format;
         if (root.format === "jpg") dmsStr += " -q " + root.quality;
 
         if (root.saveToDisk && root.customPath) {
-            if (!root.customPath.match(/\.(png|jpe?g|ppm)$/i)) {
-                dmsStr += " --dir \"" + root.customPath + "\"";
+            const expandedPath = root._expandFilenameTemplate(root.customPath);
+            if (!expandedPath.match(/\.(png|jpe?g|ppm)$/i)) {
+                dmsStr += " --dir \"" + expandedPath + "\"";
             } else {
-                dmsStr += " --filename \"" + root.customPath + "\"";
+                dmsStr += " --filename \"" + expandedPath + "\"";
             }
         }
 
