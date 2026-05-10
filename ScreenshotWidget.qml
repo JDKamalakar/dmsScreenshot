@@ -384,7 +384,7 @@ PluginComponent {
 
             Loader {
                 width: parent.width
-                asynchronous: true
+                asynchronous: false
                 sourceComponent: popoutInternal
                 
                 opacity: status === Loader.Ready ? 1 : 0

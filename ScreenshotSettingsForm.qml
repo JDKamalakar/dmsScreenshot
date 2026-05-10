@@ -56,7 +56,7 @@ Column {
     StyledRect {
         width: parent.width; anchors.horizontalCenter: parent.horizontalCenter
         height: modeColumnCC.implicitHeight + Theme.spacingM * 2
-        Behavior on height { NumberAnimation { duration: 300; easing.type: Easing.OutCubic } }
+
         radius: Theme.cornerRadius
         color: Theme.withAlpha(Theme.surfaceContainerHigh, Theme.popupTransparency)
 
@@ -232,7 +232,7 @@ Column {
             color: Theme.withAlpha(Theme.shadowColor || "#000000", 0.35)
         }
 
-        Behavior on height { NumberAnimation { duration: 100; easing.type: Easing.OutQuart } }
+
 
         Column {
             id: optionsColumnCC
@@ -255,7 +255,9 @@ Column {
                 spacing: 4
 
                 readonly property var visibleKeys: {
-                    let base = ["copyToClipboard", "saveToDisk", "showPointer", "stdout", "delaySeconds", "format"];
+                    let base = ["copyToClipboard", "saveToDisk", "showPointer", "stdout"];
+                    if (root.mode !== "interactive") base.push("delaySeconds");
+                    base.push("format");
                     if (root.format === "jpg") base.push("quality");
                     base.push("customPath");
                     return base;
@@ -305,11 +307,11 @@ Column {
                     
                     height: baseHeight + groupMargin
 
-                    Behavior on height { NumberAnimation { duration: 100; easing.type: Easing.OutQuart } }
+                    Behavior on height { NumberAnimation { duration: 200; easing.type: Easing.OutQuad } }
                     
-                    visible: baseHeight > 0
+                    visible: height > 0 || baseHeight > 0
                     opacity: baseHeight > 0 ? 1 : 0
-                    Behavior on opacity { NumberAnimation { duration: 150 } }
+                    Behavior on opacity { NumberAnimation { duration: 200 } }
 
                     Item {
                         id: contentCard
@@ -329,10 +331,10 @@ Column {
                         property real blr: isLast ? outerRadius : innerRadius
                         property real brr: isLast ? outerRadius : innerRadius
 
-                        property real tlrAnim: tlr; Behavior on tlrAnim { NumberAnimation { duration: 150 } }
-                        property real trrAnim: trr; Behavior on trrAnim { NumberAnimation { duration: 150 } }
-                        property real blrAnim: blr; Behavior on blrAnim { NumberAnimation { duration: 150 } }
-                        property real brrAnim: brr; Behavior on brrAnim { NumberAnimation { duration: 150 } }
+                        property real tlrAnim: tlr; Behavior on tlrAnim { NumberAnimation { duration: 200; easing.type: Easing.OutQuad } }
+                        property real trrAnim: trr; Behavior on trrAnim { NumberAnimation { duration: 200; easing.type: Easing.OutQuad } }
+                        property real blrAnim: blr; Behavior on blrAnim { NumberAnimation { duration: 200; easing.type: Easing.OutQuad } }
+                        property real brrAnim: brr; Behavior on brrAnim { NumberAnimation { duration: 200; easing.type: Easing.OutQuad } }
 
                         property color paintColor: hovered ? Qt.rgba(Theme.primary.r, Theme.primary.g, Theme.primary.b, 0.08) : Qt.rgba(Theme.secondary.r, Theme.secondary.g, Theme.secondary.b, 0.06)
                         property color paintBorder: hovered ? Qt.rgba(Theme.primary.r, Theme.primary.g, Theme.primary.b, 0.4) : Qt.rgba(Theme.secondary.r, Theme.secondary.g, Theme.secondary.b, 0.15)
