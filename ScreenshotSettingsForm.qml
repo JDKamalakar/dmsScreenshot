@@ -26,6 +26,7 @@ Column {
     property bool showNotify: true
     property bool stdout: false
     property string pipeCommand: ""
+    property int delaySeconds: 0
     property string output: "" // (deprecated)
 
     signal saveSetting(string key, var value)
@@ -48,13 +49,14 @@ Column {
         root.showNotify = loadSetting("showNotify", true);
         root.stdout = loadSetting("stdout", false);
         root.pipeCommand = loadSetting("pipeCommand", "") || "";
+        root.delaySeconds = parseInt(loadSetting("delaySeconds", 0)) || 0;
     }
 
     // --- Capture Mode Section ---
     StyledRect {
         width: parent.width; anchors.horizontalCenter: parent.horizontalCenter
         height: modeColumnCC.implicitHeight + Theme.spacingM * 2
-        Behavior on height { NumberAnimation { duration: 300; easing.type: Easing.OutCubic } }
+
         radius: Theme.cornerRadius
         color: Theme.withAlpha(Theme.surfaceContainerHigh, Theme.popupTransparency)
 
@@ -230,7 +232,7 @@ Column {
             color: Theme.withAlpha(Theme.shadowColor || "#000000", 0.35)
         }
 
-        Behavior on height { NumberAnimation { duration: 100; easing.type: Easing.OutQuart } }
+
 
         Column {
             id: optionsColumnCC
@@ -253,14 +255,16 @@ Column {
                 spacing: 4
 
                 readonly property var visibleKeys: {
-                    let base = ["copyToClipboard", "saveToDisk", "showPointer", "stdout", "format"];
+                    let base = ["copyToClipboard", "saveToDisk", "showPointer", "stdout"];
+                    if (root.mode !== "interactive") base.push("delaySeconds");
+                    base.push("format");
                     if (root.format === "jpg") base.push("quality");
                     base.push("customPath");
                     return base;
                 }
 
                 function getGroup(key) {
-                    if (key === "copyToClipboard" || key === "saveToDisk" || key === "showPointer" || key === "stdout") return 1;
+                    if (key === "copyToClipboard" || key === "saveToDisk" || key === "showPointer" || key === "stdout" || key === "delaySeconds") return 1;
                     if (key === "format" || key === "quality") return 2;
                     if (key === "customPath") return 3;
                     return 0;
@@ -272,6 +276,7 @@ Column {
                         { t: "Save to Disk",       i: "save",          k: "saveToDisk",      type: "toggle"      },
                         { t: "Show Pointer",       i: "mouse",         k: "showPointer",     type: "toggle"      },
                         { t: "Screenshot Editor",  i: "output",        k: "stdout",          type: "toggle"      },
+                        { t: "Capture Delay",      i: "schedule",      k: "delaySeconds",    type: "delay"       },
                         { t: "Image Format",       i: "image",         k: "format",          type: "format"      },
                         { t: "JPEG Quality",       i: "high_quality",  k: "quality",         type: "qualityField"},
                         { t: "Custom Directory",   i: "folder",        k: "customPath",      type: "pathField"   }
@@ -292,20 +297,21 @@ Column {
 
                     property real baseHeight: {
                         if (modelData.type === "format")       return 72;
+                        if (modelData.type === "delay")        return root.mode !== "interactive" ? 72 : 0;
                         if (modelData.type === "qualityField") return root.format === "jpg" ? 72 : 0;
                         if (modelData.type === "pathField")    return 72;
-                        return 44; 
+                        return 44;
                     }
 
                     readonly property real groupMargin: (isLast && vIdx !== vk.length - 1 && baseHeight > 0) ? 8 : 0
                     
                     height: baseHeight + groupMargin
 
-                    Behavior on height { NumberAnimation { duration: 100; easing.type: Easing.OutQuart } }
+                    Behavior on height { NumberAnimation { duration: 200; easing.type: Easing.OutQuad } }
                     
-                    visible: baseHeight > 0
+                    visible: height > 0 || baseHeight > 0
                     opacity: baseHeight > 0 ? 1 : 0
-                    Behavior on opacity { NumberAnimation { duration: 150 } }
+                    Behavior on opacity { NumberAnimation { duration: 200 } }
 
                     Item {
                         id: contentCard
@@ -325,10 +331,10 @@ Column {
                         property real blr: isLast ? outerRadius : innerRadius
                         property real brr: isLast ? outerRadius : innerRadius
 
-                        property real tlrAnim: tlr; Behavior on tlrAnim { NumberAnimation { duration: 150 } }
-                        property real trrAnim: trr; Behavior on trrAnim { NumberAnimation { duration: 150 } }
-                        property real blrAnim: blr; Behavior on blrAnim { NumberAnimation { duration: 150 } }
-                        property real brrAnim: brr; Behavior on brrAnim { NumberAnimation { duration: 150 } }
+                        property real tlrAnim: tlr; Behavior on tlrAnim { NumberAnimation { duration: 200; easing.type: Easing.OutQuad } }
+                        property real trrAnim: trr; Behavior on trrAnim { NumberAnimation { duration: 200; easing.type: Easing.OutQuad } }
+                        property real blrAnim: blr; Behavior on blrAnim { NumberAnimation { duration: 200; easing.type: Easing.OutQuad } }
+                        property real brrAnim: brr; Behavior on brrAnim { NumberAnimation { duration: 200; easing.type: Easing.OutQuad } }
 
                         property color paintColor: hovered ? Qt.rgba(Theme.primary.r, Theme.primary.g, Theme.primary.b, 0.08) : Qt.rgba(Theme.secondary.r, Theme.secondary.g, Theme.secondary.b, 0.06)
                         property color paintBorder: hovered ? Qt.rgba(Theme.primary.r, Theme.primary.g, Theme.primary.b, 0.4) : Qt.rgba(Theme.secondary.r, Theme.secondary.g, Theme.secondary.b, 0.15)
@@ -395,6 +401,35 @@ Column {
                                     var fmts = ["png", "jpg", "ppm"];
                                     root.format = fmts[index];
                                     root.saveSetting("format", fmts[index]);
+                                }
+                            }
+                        }
+                    }
+
+                    ColumnLayout {
+                        anchors.left: parent.left; anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter
+                        anchors.leftMargin: 12; anchors.rightMargin: 12; spacing: 4
+                        visible: modelData.type === "delay"
+                        RowLayout {
+                            Layout.fillWidth: true; spacing: Theme.spacingS
+                            DankIcon { name: modelData.i; color: Theme.surfaceVariantText; size: 18 }
+                            StyledText { text: modelData.t; color: Theme.surfaceText; font.pixelSize: Theme.fontSizeSmall; Layout.fillWidth: true }
+                        }
+                        DankButtonGroup {
+                            Layout.fillWidth: true; buttonHeight: 30; minButtonWidth: 54
+                            scale: 0.85
+                            model: ["Off", "3s", "5s", "10s"]
+                            currentIndex: {
+                                if (root.delaySeconds === 3) return 1;
+                                if (root.delaySeconds === 5) return 2;
+                                if (root.delaySeconds === 10) return 3;
+                                return 0;
+                            }
+                            onSelectionChanged: function(index, selected) {
+                                if (selected) {
+                                    var vals = [0, 3, 5, 10];
+                                    root.delaySeconds = vals[index];
+                                    root.saveSetting("delaySeconds", String(vals[index]));
                                 }
                             }
                         }
