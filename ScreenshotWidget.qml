@@ -28,10 +28,12 @@ PluginComponent {
     property bool stdout: pluginData.stdout !== undefined ? pluginData.stdout : false
     property string pipeCommand: pluginData.pipeCommand || ""
     property string filename: pluginData.filename || ""
+    property int delaySeconds: pluginData.delaySeconds !== undefined ? pluginData.delaySeconds : 0
 
     // -- Internal ----------------------------------------------------------------------
     property bool isTakingScreenshot: false
     property string defaultPath: ""
+    property var _pendingExecCmd: null
 
     Process {
         id: defaultPathDetector
@@ -44,6 +46,13 @@ PluginComponent {
                 }
             }
         }
+    }
+
+    Timer {
+        id: pendingCaptureTimer
+        interval: 0
+        repeat: false
+        onTriggered: root._fireCapture()
     }
 
     ccWidgetIcon: "screenshot_region"
@@ -120,6 +129,7 @@ PluginComponent {
             root.stdout = PluginService.loadPluginData("dmsScreenshot", "stdout", false);
             root.pipeCommand = PluginService.loadPluginData("dmsScreenshot", "pipeCommand", "") || "";
             root.filename = PluginService.loadPluginData("dmsScreenshot", "filename", "") || "";
+            root.delaySeconds = parseInt(PluginService.loadPluginData("dmsScreenshot", "delaySeconds", 0)) || 0;
         }
 
         let dmsStr = "";
@@ -159,9 +169,24 @@ PluginComponent {
             execCmd = ["bash", "-c", "sleep 0.3; " + dmsStr];
         }
 
-        Quickshell.execDetached(execCmd);
+        root._pendingExecCmd = execCmd;
+
+        const useDelay = root.delaySeconds > 0 && root.mode !== "interactive";
+        if (useDelay) {
+            pendingCaptureTimer.interval = root.delaySeconds * 1000;
+            pendingCaptureTimer.start();
+        } else {
+            root._fireCapture();
+        }
+    }
+
+    function _fireCapture() {
+        if (root._pendingExecCmd) {
+            Quickshell.execDetached(root._pendingExecCmd);
+            root._pendingExecCmd = null;
+        }
         root.isTakingScreenshot = false;
-        
+
         if (root.showToast && typeof ToastService !== "undefined") {
             ToastService.showInfo("Screenshot", "Screenshot triggered");
         }
@@ -335,6 +360,7 @@ PluginComponent {
                     if (key === "stdout") root.stdout = value;
                     if (key === "pipeCommand") root.pipeCommand = value;
                     if (key === "filename") root.filename = value;
+                    if (key === "delaySeconds") root.delaySeconds = value;
 
                     try {
                         if (typeof PluginService !== "undefined" && PluginService)
@@ -518,6 +544,7 @@ PluginComponent {
                         if (key === "stdout") root.stdout = value;
                         if (key === "pipeCommand") root.pipeCommand = value;
                         if (key === "filename") root.filename = value;
+                        if (key === "delaySeconds") root.delaySeconds = value;
 
                         try {
                             if (typeof PluginService !== "undefined" && PluginService)

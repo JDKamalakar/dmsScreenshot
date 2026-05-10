@@ -30,6 +30,7 @@ Integrated screenshot utility for Dank Material Shell – capture your workflow 
 * **Material Aesthetics**: Smooth animations and transitions that feel native to DMS.
 * **Integrated Workflow**: Automatically save to disk, copy to clipboard, or pipe to an editor.
 * **Filename Templates**: Insert date and time tokens like `%Y`, `%m`, `%d`, `%H`, `%M`, `%S` directly into custom paths and filenames.
+* **Capture Delay**: Optional countdown of 3, 5, or 10 seconds before the shutter fires for non-interactive modes.
 * **Deep Settings**: Full control over output format, quality, and notification behavior.
 
 </div>
