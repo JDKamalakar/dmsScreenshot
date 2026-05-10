@@ -4,7 +4,7 @@
     <img src="assets/icons/screenshot.svg" alt="Screenshot logo" title="Screenshot logo" width="80"/>
 </a>
 
-# Screenshot [App](#)
+# [DMS_Screenshot](#)
 
 ### Premium Screen Capture
 Integrated screenshot utility for Dank Material Shell – capture your workflow with precision and style.
