@@ -65,7 +65,6 @@ PluginComponent {
         if (root.mode === "interactive") return "Interactive Mode"
         if (root.mode === "full") return "Focused Screen"
         if (root.mode === "all") return "All Screens"
-        if (root.mode === "last") return "Repeat Last"
         return "Screenshot"
     }
 
@@ -167,7 +166,7 @@ PluginComponent {
 
         root._pendingExecCmd = execCmd;
 
-        const useDelay = root.delaySeconds > 0 && root.mode !== "interactive";
+        const useDelay = root.delaySeconds > 0;
         if (useDelay) {
             pendingCaptureTimer.interval = root.delaySeconds * 1000;
             pendingCaptureTimer.start();
@@ -223,12 +222,6 @@ PluginComponent {
                 color: Theme.withAlpha(Theme.surfaceContainerHigh, Theme.popupTransparency)
                 border.width: 1
                 border.color: Qt.rgba(Theme.primary.r, Theme.primary.g, Theme.primary.b, 0.15)
-                layer.enabled: true
-                layer.effect: DropShadow {
-                    transparentBorder: true; horizontalOffset: 0; verticalOffset: 3
-                    radius: 12.0; samples: 24
-                    color: Theme.withAlpha(Theme.shadowColor || "#000000", 0.35)
-                }
                 RowLayout {
                     anchors.fill: parent; anchors.margins: Theme.spacingM; spacing: Theme.spacingM
                     Rectangle {
@@ -344,6 +337,19 @@ PluginComponent {
                 pluginService: typeof PluginService !== "undefined" ? PluginService : null
                 pluginId: "dmsScreenshot"
                 defaultPath: root.defaultPath
+                
+                mode: root.mode
+                showPointer: root.showPointer
+                saveToDisk: root.saveToDisk
+                customPath: root.customPath
+                format: root.format
+                quality: root.quality
+                copyToClipboard: root.copyToClipboard
+                showNotify: root.showNotify
+                stdout: root.stdout
+                pipeCommand: root.pipeCommand
+                delaySeconds: root.delaySeconds
+                
                 onSaveSetting: function(key, value) {
                     if (key === "mode") root.mode = value;
                     if (key === "showPointer") root.showPointer = value;
@@ -409,12 +415,6 @@ PluginComponent {
                     color: Theme.withAlpha(Theme.surfaceContainerHigh, Theme.popupTransparency)
                     border.width: 1
                     border.color: Qt.rgba(Theme.primary.r, Theme.primary.g, Theme.primary.b, 0.15)
-                    layer.enabled: true
-                    layer.effect: DropShadow {
-                        transparentBorder: true; horizontalOffset: 0; verticalOffset: 3
-                        radius: 12.0; samples: 24
-                        color: Theme.withAlpha(Theme.shadowColor || "#000000", 0.35)
-                    }
                     RowLayout {
                         anchors.fill: parent; anchors.margins: Theme.spacingM; spacing: Theme.spacingM
                         Rectangle {
@@ -528,6 +528,19 @@ PluginComponent {
                     pluginService: typeof PluginService !== "undefined" ? PluginService : null
                     pluginId: "dmsScreenshot"
                     defaultPath: root.defaultPath
+                    
+                    mode: root.mode
+                    showPointer: root.showPointer
+                    saveToDisk: root.saveToDisk
+                    customPath: root.customPath
+                    format: root.format
+                    quality: root.quality
+                    copyToClipboard: root.copyToClipboard
+                    showNotify: root.showNotify
+                    stdout: root.stdout
+                    pipeCommand: root.pipeCommand
+                    delaySeconds: root.delaySeconds
+                    
                     onSaveSetting: function(key, value) {
                         if (key === "mode") root.mode = value;
                         if (key === "showPointer") root.showPointer = value;
