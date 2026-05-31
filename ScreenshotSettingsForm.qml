@@ -4,7 +4,6 @@ import Quickshell.Io
 import qs.Common
 import qs.Widgets
 import qs.Services
-import Qt5Compat.GraphicalEffects
 
 Column {
     id: root

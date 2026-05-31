@@ -7,7 +7,6 @@ import qs.Widgets
 import qs.Modules.Plugins
 import QtQuick.Layouts
 import QtCore
-import Qt5Compat.GraphicalEffects
 import QtQuick.Controls
 
 PluginComponent {
