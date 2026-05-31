@@ -28,6 +28,8 @@ Column {
     property string pipeCommand: ""
     property int delaySeconds: 0
     property string output: "" // (deprecated)
+    
+    property bool _isReady: true
 
     signal saveSetting(string key, var value)
 
@@ -38,19 +40,6 @@ Column {
         return defaultValue;
     }
 
-    Component.onCompleted: {
-        root.mode = loadSetting("mode", "interactive");
-        root.showPointer = loadSetting("showPointer", true);
-        root.saveToDisk = loadSetting("saveToDisk", true);
-        root.customPath = loadSetting("customPath", "") || "";
-        root.format = loadSetting("format", "png") || "png";
-        root.quality = loadSetting("quality", 90);
-        root.copyToClipboard = loadSetting("copyToClipboard", true);
-        root.showNotify = loadSetting("showNotify", true);
-        root.stdout = loadSetting("stdout", false);
-        root.pipeCommand = loadSetting("pipeCommand", "") || "";
-        root.delaySeconds = parseInt(loadSetting("delaySeconds", 0)) || 0;
-    }
 
     // --- Capture Mode Section ---
     StyledRect {
@@ -59,19 +48,14 @@ Column {
 
         radius: Theme.cornerRadius
         color: Theme.withAlpha(Theme.surfaceContainerHigh, Theme.popupTransparency)
-
-        layer.enabled: true
-        layer.effect: DropShadow {
-            transparentBorder: true; horizontalOffset: 0; verticalOffset: 3
-            radius: 12.0; samples: 24
-            color: Theme.withAlpha(Theme.shadowColor || "#000000", 0.35)
-        }
+        border.width: 1
+        border.color: Qt.rgba(Theme.primary.r, Theme.primary.g, Theme.primary.b, 0.15)
 
         Column {
             id: modeColumnCC
-            anchors.left: parent.left; anchors.right: parent.right
-            anchors.verticalCenter: parent.verticalCenter
-            anchors.margins: Theme.spacingM
+            width: parent.width - Theme.spacingM * 2
+            x: Theme.spacingM
+            y: Theme.spacingM
             spacing: Theme.spacingS
 
             RowLayout {
@@ -91,8 +75,7 @@ Column {
                     model: [
                         { label: "Interactive",    val: "interactive", ic: "touch_app"     },
                         { label: "Focused Screen", val: "full",        ic: "monitor"       },
-                        { label: "All Screens",    val: "all",         ic: "monitor_weight"},
-                        { label: "Repeat Last",    val: "last",        ic: "history"       }
+                        { label: "All Screens",    val: "all",         ic: "monitor_weight"}
                     ]
 
                     delegate: Item {
@@ -101,7 +84,7 @@ Column {
                     height: 44
                     readonly property bool isSelected: root.mode === modelData.val
                     readonly property bool hovered: modeMouseArea.containsMouse
-                    readonly property int  totalCount: 4   // fixed 4 items
+                    readonly property int  totalCount: 3   // fixed 3 items
 
                     // Dynamic background with Canvas for selective corner rounding
                     Canvas {
@@ -125,15 +108,17 @@ Column {
 
                         property color paintColor: isSelected
                             ? Qt.rgba(Theme.primary.r, Theme.primary.g, Theme.primary.b, 0.18)
-                            : hovered
+                            : (hovered
                                 ? Qt.rgba(Theme.primary.r, Theme.primary.g, Theme.primary.b, 0.1)
-                                : Qt.rgba(Theme.secondary.r, Theme.secondary.g, Theme.secondary.b, 0.04)
+                                : Qt.rgba(Theme.secondary.r, Theme.secondary.g, Theme.secondary.b, 0.04))
+                        Behavior on paintColor { ColorAnimation { duration: 150 } }
                         
                         property color paintBorder: isSelected
                             ? Qt.rgba(Theme.primary.r, Theme.primary.g, Theme.primary.b, 0.6)
-                            : hovered
+                            : (hovered
                                 ? Qt.rgba(Theme.primary.r, Theme.primary.g, Theme.primary.b, 0.4)
-                                : Qt.rgba(Theme.secondary.r, Theme.secondary.g, Theme.secondary.b, 0.15)
+                                : Qt.rgba(Theme.secondary.r, Theme.secondary.g, Theme.secondary.b, 0.15))
+                        Behavior on paintBorder { ColorAnimation { duration: 150 } }
 
                         onTlrAnimChanged: requestPaint()
                         onTrrAnimChanged: requestPaint()
@@ -224,21 +209,16 @@ Column {
         height: optionsColumnCC.implicitHeight + Theme.spacingM * 2
         radius: Theme.cornerRadius
         color: Theme.withAlpha(Theme.surfaceContainerHigh, Theme.popupTransparency)
-
-        layer.enabled: true
-        layer.effect: DropShadow {
-            transparentBorder: true; horizontalOffset: 0; verticalOffset: 3
-            radius: 12.0; samples: 24
-            color: Theme.withAlpha(Theme.shadowColor || "#000000", 0.35)
-        }
+        border.width: 1
+        border.color: Qt.rgba(Theme.primary.r, Theme.primary.g, Theme.primary.b, 0.15)
 
 
 
         Column {
             id: optionsColumnCC
-            anchors.top: parent.top
-            anchors.left: parent.left; anchors.right: parent.right
-            anchors.margins: Theme.spacingM
+            width: parent.width - Theme.spacingM * 2
+            x: Theme.spacingM
+            y: Theme.spacingM
             spacing: Theme.spacingS
 
             RowLayout {
@@ -255,8 +235,7 @@ Column {
                 spacing: 4
 
                 readonly property var visibleKeys: {
-                    let base = ["copyToClipboard", "saveToDisk", "showPointer", "stdout"];
-                    if (root.mode !== "interactive") base.push("delaySeconds");
+                    let base = ["copyToClipboard", "saveToDisk", "showPointer", "stdout", "delaySeconds"];
                     base.push("format");
                     if (root.format === "jpg") base.push("quality");
                     base.push("customPath");
@@ -297,7 +276,7 @@ Column {
 
                     property real baseHeight: {
                         if (modelData.type === "format")       return 72;
-                        if (modelData.type === "delay")        return root.mode !== "interactive" ? 72 : 0;
+                        if (modelData.type === "delay")        return 72;
                         if (modelData.type === "qualityField") return root.format === "jpg" ? 72 : 0;
                         if (modelData.type === "pathField")    return 72;
                         return 44;
@@ -306,12 +285,9 @@ Column {
                     readonly property real groupMargin: (isLast && vIdx !== vk.length - 1 && baseHeight > 0) ? 8 : 0
                     
                     height: baseHeight + groupMargin
-
-                    Behavior on height { NumberAnimation { duration: 200; easing.type: Easing.OutQuad } }
                     
                     visible: height > 0 || baseHeight > 0
                     opacity: baseHeight > 0 ? 1 : 0
-                    Behavior on opacity { NumberAnimation { duration: 200 } }
 
                     Item {
                         id: contentCard
@@ -336,8 +312,10 @@ Column {
                         property real blrAnim: blr; Behavior on blrAnim { NumberAnimation { duration: 200; easing.type: Easing.OutQuad } }
                         property real brrAnim: brr; Behavior on brrAnim { NumberAnimation { duration: 200; easing.type: Easing.OutQuad } }
 
-                        property color paintColor: hovered ? Qt.rgba(Theme.primary.r, Theme.primary.g, Theme.primary.b, 0.08) : Qt.rgba(Theme.secondary.r, Theme.secondary.g, Theme.secondary.b, 0.06)
+                        property color paintColor: hovered ? Qt.rgba(Theme.primary.r, Theme.primary.g, Theme.primary.b, 0.1) : Qt.rgba(Theme.secondary.r, Theme.secondary.g, Theme.secondary.b, 0.04)
+                        Behavior on paintColor { ColorAnimation { duration: 150 } }
                         property color paintBorder: hovered ? Qt.rgba(Theme.primary.r, Theme.primary.g, Theme.primary.b, 0.4) : Qt.rgba(Theme.secondary.r, Theme.secondary.g, Theme.secondary.b, 0.15)
+                        Behavior on paintBorder { ColorAnimation { duration: 150 } }
 
                         onTlrAnimChanged: requestPaint()
                         onTrrAnimChanged: requestPaint()
